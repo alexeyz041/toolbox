@@ -1,0 +1,1 @@
+requires libpng16

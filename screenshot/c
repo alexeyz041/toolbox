@@ -1,0 +1,1 @@
+gcc -D_GNU_SOURCE screenshot.c -o screenshot -std=c99 -I/usr/X11R6/include -L/usr/X11R6/lib -lX11 -lXext -lpng

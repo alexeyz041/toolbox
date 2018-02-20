@@ -1,0 +1,1 @@
+gcc damage.c -o damage -lX11 -lXdamage -lXfixes
