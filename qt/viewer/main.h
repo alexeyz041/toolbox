@@ -18,15 +18,7 @@ public:
     }
 
 public slots:
-    void update1(uint8_t *buf,int len)
-    {
-    	QPixmap img;
-    	if(img.loadFromData(buf,len)) {
-        	printf("%d x %d\n",img.width(),img.height());
-    	}
-
-    	((QGraphicsPixmapItem *)items()[0])->setPixmap(img);
-    }
+    void update1(uint8_t *buf,int len);
 
 private:
 
