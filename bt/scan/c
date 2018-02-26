@@ -1,0 +1,1 @@
+gcc -o simplescan simplescan.c -lbluetooth
