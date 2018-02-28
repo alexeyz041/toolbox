@@ -141,7 +141,6 @@ int main(int argc,char **argv)
     } else if(endsWith(argv[1],".jpg")) {
 	int w = 0;
 	int h = 0;
-	int bcnt = 0;
 	uint8_t *p = read_JPEG_file(argv[1],&w,&h);
 	if(p) {
 	    BITMAPINFO info;

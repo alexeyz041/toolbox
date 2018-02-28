@@ -1,3 +1,5 @@
 Makefile
 moc_*
 viewer
+viewer.app/
+.qmake.stash

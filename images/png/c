@@ -1,1 +1,1 @@
-gcc -g bitmap.c pngwr.c -o bmp2png -lpng
+gcc -Wall -g bitmap.c pngwr.c -o bmp2png -lpng

@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <unistd.h>
+#include <string.h>
 #include <libpng/png.h>
 #include "bitmap.h"
 
@@ -19,8 +21,8 @@ int save_png(const char *outfile,int xres,int yres,int bits_per_pixel,uint8_t *b
     
     png_structp png;
     png_infop info;
-    unsigned int r,c,rowlen;
-    unsigned int bytespp,offset;
+    unsigned int r,rowlen;
+    unsigned int bytespp;
 
     png = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
     if (!png) {
@@ -68,7 +70,7 @@ int save_png(const char *outfile,int xres,int yres,int bits_per_pixel,uint8_t *b
 
 uint8_t *load_png(char* file_name,int *width,int *height,int *bcnt,png_colorp plt)
 {
-    char header[8] = {0};    // 8 is the maximum size that can be checked
+    uint8_t header[8] = {0};    // 8 is the maximum size that can be checked
     png_structp png_ptr;
     png_infop info_ptr;
 

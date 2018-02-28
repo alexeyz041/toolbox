@@ -1,1 +1,1 @@
-gcc -g -I../png ../png/bitmap.c jpeg.c -o bmp2jpeg -ljpeg
+gcc -Wall -g -I../png ../png/bitmap.c jpeg.c -o bmp2jpeg -ljpeg

@@ -1,3 +1,5 @@
 Makefile
 moc_*
 streamer
+streamer.app/
+.qmake.stash
