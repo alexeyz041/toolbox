@@ -13,7 +13,6 @@
 void *server(void *p)
 {
 int result;
-char *sendbuf = "Test data from receiver...";
 int recvbuflen = DEFAULT_BUFLEN;
 unsigned char recvbuf[DEFAULT_BUFLEN] = "";
 
@@ -82,7 +81,7 @@ struct sockaddr_rc sab, sab2;
     }
 
     for ( ; ; ) {
-        int ilen = sizeof(sab2);
+        unsigned int ilen = sizeof(sab2);
         int s2 = accept (s, (struct sockaddr *)&sab2, &ilen);
         if (s2 == -1) {
 	    printf ("accept failed\n");
