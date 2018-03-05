@@ -1,0 +1,2 @@
+clang++ -std=c++11 -g -Wall main.cpp -o main -lboost_system -lboost_thread
+
