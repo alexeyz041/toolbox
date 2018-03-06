@@ -15,16 +15,17 @@
 #include <memory>
 #include <utility>
 #include <boost/asio.hpp>
+#include <boost/algorithm/string.hpp>
 #include <sstream>
 
 using boost::asio::ip::tcp;
 
-std::string document()
+std::string document(const std::string verb,const std::string url)
 {
     std::stringstream ss;
     ss << "<html>\n";
     ss << "<body>\n";
-    ss << "Hello!\n";
+    ss << "Hello! " << verb << " " << url << "\n";
     ss << "</body>\n";
     ss << "</html>\n";
     return ss.str();
@@ -54,7 +55,10 @@ private:
           {
             std::cout << data_;
 
-	    std::string doc = document();
+	    std::string line(data_);
+    	    std::vector<std::string> strs;
+    	    boost::split(strs,line,boost::is_any_of(" "));
+    	    std::string doc = document(strs[0],strs[1]);
 
 	    std::stringstream ss;
             ss << "HTTP/1.0 200 OK\n";
