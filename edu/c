@@ -1,0 +1,2 @@
+gcc main.c -c -o main.o
+gcc main.o -o main -Lso -lf

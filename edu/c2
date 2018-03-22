@@ -1,0 +1,3 @@
+gcc main2.c -c -o main2.o
+gcc main2.o -o main2 -ldl
+

@@ -1,0 +1,2 @@
+gcc -c -fPIC -o f.o f.c
+gcc -shared -fPIC -Wl,-soname,libf.so -o libf.so f.o
