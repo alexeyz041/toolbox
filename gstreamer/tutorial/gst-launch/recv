@@ -1,0 +1,5 @@
+#
+# Example: Receive and show JPEG images over RTP
+# inspired by this http://www.einarsundgren.se/gstreamer-basic-real-time-streaming-tutorial/
+#
+gst-launch-1.0 udpsrc port=5000 ! application/x-rtp,encoding-name=JPEG,payload=26 ! rtpjpegdepay ! jpegdec ! autovideosink

@@ -1,0 +1,1 @@
+gcc tut8.c -o tut8 `pkg-config --cflags --libs gstreamer-1.0 gstreamer-audio-1.0`
