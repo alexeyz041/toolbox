@@ -1,5 +1,7 @@
 // https://stackoverflow.com/questions/28491665/how-to-egl-offscreen-render-to-an-image-on-linux
-
+//
+// https://www.khronos.org/registry/EGL/sdk/docs/man/html/indexflat.php
+//
 
 #include <QCoreApplication>
 #include <QDebug>
