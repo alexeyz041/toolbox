@@ -1,5 +1,5 @@
 //
-// Test Qt multiscreen configuration + stream first screen over JPEG/RTP using gstreamer
+// Test Qt multiscreen configuration + save screen to file
 // based on https://github.com/alpqr/quickmwtest
 //
 
