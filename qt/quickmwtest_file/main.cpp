@@ -58,6 +58,7 @@ int main(int argc, char **argv)
     }
 
     RenderThread *rt = new RenderThread(screens[screens.count()-1]);
+//    RenderThread *rt = new RenderThread(screens[0]);
     rt->start();
     QObject::connect(&app, SIGNAL(aboutToQuit()), rt, SLOT(stop()));
 
