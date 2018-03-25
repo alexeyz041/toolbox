@@ -1,0 +1,6 @@
+Makefile
+*.o
+quickmwtest
+moc_*
+qrc_*
+.qmake.stash
