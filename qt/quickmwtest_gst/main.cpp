@@ -56,10 +56,10 @@ int main(int argc, char **argv)
         v->showFullScreen();
     }
 
-    RenderThread *rt = new RenderThread(screens[0]);
+    RenderThread *rt = new RenderThread(screens[0],argc,argv);
     rt->start();
-
     QObject::connect(&app, SIGNAL(aboutToQuit()), rt, SLOT(stop()));
+
     int r = app.exec();
 
     qDeleteAll(views);

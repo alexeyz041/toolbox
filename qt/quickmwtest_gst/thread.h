@@ -15,10 +15,12 @@ class RenderThread : public QThread
     Q_OBJECT
 
 public:
-    RenderThread(QScreen *screen,QObject *parent = 0) :  QThread(parent), quit(false), screen(screen)
+    RenderThread(QScreen *screen,int argc,char **argv,QObject *parent = 0) :  QThread(parent), quit(false), screen(screen)
     {
 	memset(&config,0,sizeof(config));
 
+	config.argc = argc;
+	config.argv = argv;
 	config.width = 800;
 	config.height = 600;
 	config.bpp = 4;

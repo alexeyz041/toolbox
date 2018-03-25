@@ -131,19 +131,21 @@ static gboolean bus_message (GstBus * bus, GstMessage * message, CustomData *app
 static const char *pipe = "appsrc name=mysource ! video/x-raw,format=BGRA,width=%d,height=%d,framerate=10/1 ! videoconvert ! video/x-raw,format=I420,width=%d,height=%d,framerate=10/1 ! jpegenc ! rtpjpegpay ! udpsink host=%s port=%d";
 
 
+
 void gst_main(void *ctx,GST_CONFIG *cfg)
 {
-int argc = 1;
-char *argv[] = { "gst", NULL };
 CustomData data;
 CustomData *pData = &data;
-//GError *error = NULL;
+GError *error = NULL;
 GstBus *bus = NULL;
 GstCaps *caps = NULL;
 char pipeline[256] = {0};
 
     memset(&data,0,sizeof(data));
-    gst_init (&argc, (char ***)&argv);
+    if(!gst_init_check(&cfg->argc, &cfg->argv, &error)) {
+        fprintf(stderr,"Error from gst_init %s\n", error->message);
+	return;
+    }
 
     pData->width = cfg->width;
     pData->height = cfg->height;

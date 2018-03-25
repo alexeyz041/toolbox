@@ -6,6 +6,8 @@ extern "C" {
 #endif
 
 typedef struct {
+    int argc;
+    char **argv;
     int	width;
     int height;
     int bpp;
