@@ -56,7 +56,7 @@ int main(int argc, char **argv)
         v->showFullScreen();
     }
 
-    RenderThread *rt = new RenderThread(screens[0],argc,argv);
+    RenderThread *rt = new RenderThread(screens[screens.count()-1],argc,argv);
     rt->start();
     QObject::connect(&app, SIGNAL(aboutToQuit()), rt, SLOT(stop()));
 

@@ -3,6 +3,7 @@
 // based on https://github.com/alpqr/quickmwtest
 //
 
+
 #include <QGuiApplication>
 #include <QQuickView>
 #include <QQmlEngine>
@@ -40,8 +41,8 @@ static QQuickView *addView(QScreen *screen, int screenIdx,int screenCount)
 
 int main(int argc, char **argv)
 {
-    qputenv("QT_LOGGING_RULES", "qt.qpa.*=true");
-    qputenv("QSG_INFO", "1");
+//    qputenv("QT_LOGGING_RULES", "qt.qpa.*=true");
+//    qputenv("QSG_INFO", "1");
 
     QGuiApplication app(argc, argv);
 
@@ -56,7 +57,7 @@ int main(int argc, char **argv)
         v->showFullScreen();
     }
 
-    RenderThread *rt = new RenderThread(screens[0]);
+    RenderThread *rt = new RenderThread(screens[screens.count()-1]);
     rt->start();
     QObject::connect(&app, SIGNAL(aboutToQuit()), rt, SLOT(stop()));
 
