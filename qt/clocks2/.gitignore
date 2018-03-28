@@ -1,0 +1,6 @@
+*.o
+moc_*
+.qmake.stash
+Makefile
+qrc_*
+clocks
