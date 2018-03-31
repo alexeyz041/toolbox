@@ -1,1 +1,1 @@
-gcc -std=c99 example.c -o example -lgbm -lEGL -lGL -lpng
+gcc example.c -o example -lgbm -lEGL -lGLESv2 -lGL -lpng

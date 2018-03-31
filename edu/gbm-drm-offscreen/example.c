@@ -19,6 +19,7 @@
 #include <errno.h>
 
 #include <EGL/egl.h>
+#include <EGL/eglext.h>
 #include <GL/gl.h>
 #include <gbm.h>
 
@@ -32,8 +33,14 @@ EGLContext eglContext;
 EGLSurface eglSurface;
 
 
-int renderBufferHeight = 1920;
-int renderBufferWidth = 1080;
+int renderBufferWidth = 1920;
+int renderBufferHeight = 1080;
+
+#ifndef EGL_EXT_platform_base
+typedef EGLDisplay (EGLAPIENTRYP PFNEGLGETPLATFORMDISPLAYEXTPROC) (EGLenum platform, void *native_display, const EGLint *attrib_list);
+typedef EGLSurface (EGLAPIENTRYP PFNEGLCREATEPLATFORMWINDOWSURFACEEXTPROC) (EGLDisplay dpy, EGLConfig config, void *native_window, const EGLint *attrib_list);
+#endif
+
 
 
 int save_png(const char *outfile,int xres,int yres,int bits_per_pixel,uint8_t *buffer)
@@ -91,6 +98,66 @@ int save_png(const char *outfile,int xres,int yres,int bits_per_pixel,uint8_t *b
 }
 
 
+#define	NELEM(X)	(sizeof(X)/sizeof(X[0]))
+
+typedef struct {
+    EGLint attrib;
+    const char *desc;
+} ATTR_DESC;
+
+
+ATTR_DESC attrs[] = {
+    { EGL_ALPHA_SIZE, "EGL_ALPHA_SIZE" },
+    { EGL_ALPHA_MASK_SIZE, "EGL_ALPHA_MASK_SIZE" },
+    { EGL_BIND_TO_TEXTURE_RGB, "EGL_BIND_TO_TEXTURE_RGB" },
+    { EGL_BIND_TO_TEXTURE_RGBA, "EGL_BIND_TO_TEXTURE_RGBA" },
+    { EGL_BLUE_SIZE, "EGL_BLUE_SIZE" },
+    { EGL_BUFFER_SIZE, "EGL_BUFFER_SIZE" },
+    { EGL_COLOR_BUFFER_TYPE, "EGL_COLOR_BUFFER_TYPE" },
+    { EGL_CONFIG_CAVEAT, "EGL_CONFIG_CAVEAT" },
+    { EGL_CONFIG_ID, "EGL_CONFIG_ID" },
+    { EGL_CONFORMANT, "EGL_CONFORMANT" },
+    { EGL_DEPTH_SIZE, "EGL_DEPTH_SIZE" },
+    { EGL_GREEN_SIZE, "EGL_GREEN_SIZE" },
+    { EGL_LEVEL, "EGL_LEVEL" },
+    { EGL_LUMINANCE_SIZE, "EGL_LUMINANCE_SIZE" },
+    { EGL_MAX_PBUFFER_WIDTH, "EGL_MAX_PBUFFER_WIDTH" },
+    { EGL_MAX_PBUFFER_HEIGHT, "EGL_MAX_PBUFFER_HEIGHT" },
+    { EGL_MAX_PBUFFER_PIXELS, "EGL_MAX_PBUFFER_PIXELS" },
+    { EGL_MAX_SWAP_INTERVAL, "EGL_MAX_SWAP_INTERVAL" },
+    { EGL_MIN_SWAP_INTERVAL, "EGL_MIN_SWAP_INTERVAL" },
+    { EGL_NATIVE_RENDERABLE, "EGL_NATIVE_RENDERABLE" },
+    { EGL_NATIVE_VISUAL_ID, "EGL_NATIVE_VISUAL_ID" },
+    { EGL_NATIVE_VISUAL_TYPE, "EGL_NATIVE_VISUAL_TYPE" },
+    { EGL_RED_SIZE, "EGL_RED_SIZE" },
+    { EGL_RENDERABLE_TYPE, "EGL_RENDERABLE_TYPE" },
+    { EGL_SAMPLE_BUFFERS, "EGL_SAMPLE_BUFFERS" },
+    { EGL_SAMPLES, "EGL_SAMPLES" },
+    { EGL_STENCIL_SIZE, "EGL_STENCIL_SIZE" },
+    { EGL_SURFACE_TYPE, "EGL_SURFACE_TYPE" },
+    { EGL_TRANSPARENT_TYPE, "EGL_TRANSPARENT_TYPE" },
+    { EGL_TRANSPARENT_RED_VALUE, "EGL_TRANSPARENT_RED_VALUE" },
+    { EGL_TRANSPARENT_GREEN_VALUE, "EGL_TRANSPARENT_GREEN_VALUE" },
+    { EGL_TRANSPARENT_BLUE_VALUE, "EGL_TRANSPARENT_BLUE_VALUE" }
+};
+
+
+void list_config(EGLConfig config)
+{
+    printf("config %p\n",config);
+    for(int i=0; i < NELEM(attrs); i++) {
+        EGLint val = 0;
+        if (!eglGetConfigAttrib(eglDisplay, config, attrs[i].attrib, &val)) {
+	    fprintf(stderr,"eglGetConfigAttrib failed\n");
+            exit(1);
+        }
+	printf("%s %x\n",attrs[i].desc,val);
+    }
+    printf("---\n");
+}
+
+
+
 void check_extensions(void)
 {
     const char *client_extensions = eglQueryString(EGL_NO_DISPLAY, EGL_EXTENSIONS);
@@ -105,7 +172,11 @@ void check_extensions(void)
 }
 
 
-#define DEV "/dev/dri/card0"
+//#define DEV "/dev/dri/card0"
+#define DEV "/dev/dri/renderD128"
+
+
+
 
 void get_display(void)
 {
@@ -121,12 +192,14 @@ void get_display(void)
         exit(1);
     }
 
-#ifdef EGL_MESA_platform_gbm
-    eglDisplay = eglGetPlatformDisplayEXT(EGL_PLATFORM_GBM_MESA, gbm, NULL);
-#else
-    eglDisplay = eglGetDisplay((EGLNativeDisplayType)gbm);
-#endif
+    PFNEGLGETPLATFORMDISPLAYEXTPROC getPlatformDisplay = NULL;
+    getPlatformDisplay = (PFNEGLGETPLATFORMDISPLAYEXTPROC)eglGetProcAddress("eglGetPlatformDisplayEXT");
+    if (!getPlatformDisplay) {
+	fprintf(stderr,"can\'t get display fn\n");
+        exit(1);
+    }
 
+    eglDisplay = getPlatformDisplay(EGL_PLATFORM_GBM_KHR, gbm, NULL);
     if(eglDisplay == EGL_NO_DISPLAY) {
 	fprintf(stderr,"can\'t create display for %s\n",DEV);
         exit(1);
@@ -139,19 +212,31 @@ void get_display(void)
     }
 
     printf("major = %d, minor = %d\n",major,minor);
+
+    fprintf(stderr,"EGL Version \"%s\"\n", eglQueryString(eglDisplay, EGL_VERSION));
+    fprintf(stderr,"EGL Vendor \"%s\"\n", eglQueryString(eglDisplay, EGL_VENDOR));
+    fprintf(stderr,"EGL Extensions \"%s\"\n", eglQueryString(eglDisplay, EGL_EXTENSIONS));
+
+    if (!eglBindAPI(EGL_OPENGL_ES_API)) {
+//    if (!eglBindAPI(EGL_OPENGL_API)) {
+	fprintf(stderr,"failed to bind api EGL_OPENGL_ES_API\n");
+	exit(1);
+    }
 }
+
+
 
 
 
 void get_config()
 {
     EGLint egl_config_attribs[] = {
-        EGL_BUFFER_SIZE,        32,
+        EGL_BUFFER_SIZE,        24,
         EGL_DEPTH_SIZE,         EGL_DONT_CARE,
         EGL_STENCIL_SIZE,       EGL_DONT_CARE,
-        EGL_RENDERABLE_TYPE,    EGL_OPENGL_ES2_BIT,
-        EGL_SURFACE_TYPE,       EGL_PBUFFER_BIT, //EGL_WINDOW_BIT,
-        EGL_NONE,
+        EGL_RENDERABLE_TYPE,    EGL_OPENGL_ES3_BIT, //EGL_OPENGL_BIT, //EGL_OPENGL_ES2_BIT,
+        EGL_SURFACE_TYPE,       EGL_WINDOW_BIT,	//EGL_PBUFFER_BIT
+        EGL_NONE
     };
 
     EGLint num_configs = 0;
@@ -170,6 +255,10 @@ void get_config()
         exit(1);
     }
 
+//    for (int i = 0; i < num_configs; ++i) {
+//	list_config(configs[i]);
+//    }
+
     // Find a config whose native visual ID is the desired GBM format.
     for (int i = 0; i < num_configs; ++i) {
         EGLint gbm_format;
@@ -179,6 +268,7 @@ void get_config()
         }
         if (gbm_format == GBM_FORMAT_XRGB8888) {
             eglConfig = configs[i];
+	    list_config(configs[i]);
             free(configs);
             return;
         }
@@ -191,26 +281,50 @@ void get_config()
 
 void get_window()
 {
-    gbmSurface = gbm_surface_create(gbm, renderBufferHeight, renderBufferWidth,
+    EGLint attributes[] = {
+	EGL_RED_SIZE, 8,
+	EGL_GREEN_SIZE, 8,
+	EGL_BLUE_SIZE, 8,
+	EGL_NONE
+    };
+
+    EGLint num_config=0;
+    eglChooseConfig (eglDisplay, attributes, &eglConfig, 1, &num_config);
+
+    eglContext = eglCreateContext(eglDisplay, eglConfig, EGL_NO_CONTEXT, NULL);
+
+    gbmSurface = gbm_surface_create(gbm, renderBufferWidth, renderBufferHeight, 
                                     GBM_FORMAT_XRGB8888,
-                                    GBM_BO_USE_RENDERING);
+                                    GBM_BO_USE_RENDERING | GBM_BO_USE_SCANOUT);
     if (!gbmSurface) {
 	fprintf(stderr,"gbm_surface_create failed\n");
         exit(1);
     }
 
-#ifdef EGL_MESA_platform_gbm
-    eglSurface = eglCreatePlatformWindowSurfaceEXT(eglDisplay,eglConfig,gbmSurface,NULL);
-#else
-    eglSurface = eglCreateWindowSurface(eglDisplay,eglConfig,(EGLNativeWindowType)gbmSurface,NULL);
-#endif
-
+    PFNEGLCREATEPLATFORMWINDOWSURFACEEXTPROC createPlatformWindowSurface = NULL;
+    createPlatformWindowSurface = (PFNEGLCREATEPLATFORMWINDOWSURFACEEXTPROC)eglGetProcAddress("eglCreatePlatformWindowSurfaceEXT");
+    if (!createPlatformWindowSurface) {
+	fprintf(stderr,"can\'t get display fn\n");
+        exit(1);
+    }
+    
+    eglSurface = createPlatformWindowSurface(eglDisplay,eglConfig,gbmSurface,NULL);
     if (eglSurface == EGL_NO_SURFACE) {
 	fprintf(stderr,"eglCreateWindowSurface failed\n");
         exit(1);
     }
 
-    eglContext = eglCreateContext (eglDisplay, eglConfig, EGL_NO_CONTEXT, NULL);
+//    EGLint attrs[] = { EGL_CONTEXT_CLIENT_VERSION, 3, EGL_NONE };
+//    eglContext = eglCreateContext (eglDisplay, eglConfig,  EGL_NO_CONTEXT, attrs);
+    if(eglContext == EGL_NO_CONTEXT) {
+	fprintf(stderr,"eglCreateContext failed\n");
+	exit(1);
+    }
+
+    if(eglMakeCurrent(eglDisplay, eglSurface, eglSurface, eglContext) == EGL_FALSE) {
+	fprintf(stderr,"eglMakeCurrent failed %x\n",glGetError());
+	exit(1);
+    }
 }
 
 
@@ -230,10 +344,10 @@ int main(void)
     check_extensions();
 
     get_display();
-    get_config();
+//    get_config();
     get_window();
 
-    glClearColor(1.0f,0.0, 0.0, 1.0);
+    glClearColor(1.0, 0.0, 0.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT);
     eglSwapBuffers(eglDisplay, eglSurface);
 

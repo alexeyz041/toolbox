@@ -74,7 +74,8 @@ static EGLContext context;
 static struct gbm_surface *gbm_surface;
 static EGLSurface egl_surface;
 
-static void setup_opengl () {
+static void setup_opengl()
+{
 	gbm_device = gbm_create_device (device);
 	display = eglGetDisplay (gbm_device);
 	eglInitialize (display, NULL, NULL);
