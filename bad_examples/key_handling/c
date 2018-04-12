@@ -1,0 +1,3 @@
+gcc a.c -o a
+gcc -shared -fPIC -o hack.so hack.c -ldl
+

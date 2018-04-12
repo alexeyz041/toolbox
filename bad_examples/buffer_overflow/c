@@ -1,0 +1,2 @@
+gcc -g auth.c -o auth
+#clang auth.c -o auth
