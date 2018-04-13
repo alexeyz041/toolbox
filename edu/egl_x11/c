@@ -1,0 +1,1 @@
+g++ main.cpp -o main -lGL -lGLESv2 -lEGL -lX11

@@ -1,0 +1,1 @@
+g++ tutorial06.cpp shader.cpp texture.cpp controls.cpp -o tutorial06 -lGL -lglfw -lGLEW

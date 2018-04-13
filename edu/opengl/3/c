@@ -1,0 +1,1 @@
+g++ tutorial03.cpp shader.cpp -o tutorial03 -lGL -lglfw -lGLEW
