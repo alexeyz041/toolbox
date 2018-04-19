@@ -3,4 +3,5 @@
 # inspired by this
 # http://www.einarsundgren.se/gstreamer-basic-real-time-streaming-tutorial/
 #
-gst-launch-1.0 -v ximagesrc use-damage=false ! videocrop top=0 left=0 right=1120 bottom=480 ! videoconvert ! video/x-raw,format=I420,width=800,height=600,framerate=10/1 ! jpegenc ! rtpjpegpay ! udpsink host=127.0.0.1 port=5000
+#gst-launch-1.0 -v ximagesrc use-damage=false ! videocrop top=0 left=0 right=1120 bottom=480 ! videoconvert ! video/x-raw,format=I420,width=800,height=600,framerate=10/1 ! jpegenc ! rtpjpegpay ! udpsink host=127.0.0.1 port=5000
+gst-launch-1.0 -v ximagesrc use-damage=false ! videocrop top=0 left=0 right=3040 bottom=480 ! videoconvert ! video/x-raw,format=I420,width=800,height=600,framerate=10/1 ! jpegenc ! rtpjpegpay ! udpsink host=127.0.0.1 port=5000

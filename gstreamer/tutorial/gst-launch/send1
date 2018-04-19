@@ -1,0 +1,6 @@
+#
+# example: send upper top part of screen overg JPEG/RTP
+# inspired by this
+# http://www.einarsundgren.se/gstreamer-basic-real-time-streaming-tutorial/
+#
+gst-launch-1.0 -v ximagesrc use-damage=false ! videoscale ! videoconvert ! video/x-raw,format=I420,width=800,height=600,framerate=10/1 ! jpegenc ! rtpjpegpay ! udpsink host=127.0.0.1 port=5000
