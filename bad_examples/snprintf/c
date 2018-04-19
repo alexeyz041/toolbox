@@ -1,0 +1,3 @@
+gcc a.c -o a1
+clang a.c -o a2
+
