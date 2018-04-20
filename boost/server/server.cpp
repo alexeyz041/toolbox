@@ -53,18 +53,17 @@ private:
         {
           if (!ec)
           {
-            std::cout << data_;
-
-	    std::string line(data_);
+	    std::string line(data_,length);
+            std::cout << line;
     	    std::vector<std::string> strs;
     	    boost::split(strs,line,boost::is_any_of(" "));
     	    std::string doc = document(strs[0],strs[1]);
 
 	    std::stringstream ss;
-            ss << "HTTP/1.0 200 OK\n";
-	    ss << "Content-Type: text/html\n";
-	    ss << "Content-Length: " << doc.length() << "\n";
-	    ss << "\n";
+            ss << "HTTP/1.0 200 OK\r\n";
+	    ss << "Content-Type: text/html\r\n";
+	    ss << "Content-Length: " << doc.length() << "\r\n";
+	    ss << "\r\n";
 	    ss << doc;
 	    response = ss.str();
 	    

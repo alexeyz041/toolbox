@@ -85,10 +85,10 @@ public:
     	std::string doc = document(strs[0],strs[1]);
 
 	std::stringstream ss;
-        ss << "HTTP/1.0 200 OK\n";
-	ss << "Content-Type: text/html\n";
-	ss << "Content-Length: " << doc.length() << "\n";
-	ss << "\n";
+        ss << "HTTP/1.0 200 OK\r\n";
+	ss << "Content-Type: text/html\r\n";
+	ss << "Content-Length: " << doc.length() << "\r\n";
+	ss << "\r\n";
 	ss << doc;
 	response = ss.str();
 	std::cout << response;
@@ -136,7 +136,7 @@ public:
         | boost::asio::ssl::context::no_sslv2
 //        | boost::asio::ssl::context::single_dh_use
     );
-    context_.set_password_callback(boost::bind(&server::get_password, this));
+//    context_.set_password_callback(boost::bind(&server::get_password, this));
     context_.use_certificate_chain_file("server.crt");
     context_.use_private_key_file("server.key", boost::asio::ssl::context::pem);
 //    context_.use_tmp_dh_file("dh512.pem");
@@ -145,10 +145,10 @@ public:
     acceptor_.async_accept(new_session->socket(), boost::bind(&server::handle_accept, this, new_session, boost::asio::placeholders::error));
   }
 
-  std::string get_password() const
-  {
-    return "test";
-  }
+//  std::string get_password() const
+//  {
+//    return "test";
+//  }
 
   void handle_accept(session* new_session, const boost::system::error_code& error)
   {
