@@ -14,6 +14,7 @@
 #include <iostream>
 #include <sstream>
 #include <boost/bind.hpp>
+#include <boost/format.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 
@@ -44,7 +45,16 @@ public:
     char subject_name[256];
     X509* cert = X509_STORE_CTX_get_current_cert(ctx.native_handle());
     X509_NAME_oneline(X509_get_subject_name(cert), subject_name, 256);
-    std::cout << "Verifying " << subject_name << "\n";
+    std::cout << "Verifying " << subject_name << " preverified: " << preverified << "\n";
+
+    const EVP_MD *fp_type = EVP_sha1();
+    unsigned int fp_size = 0;
+    unsigned char fp[EVP_MAX_MD_SIZE];
+    X509_digest(cert, fp_type, fp, &fp_size);
+    for(int i=0; i < fp_size; i++) {
+	std::cout << boost::format("%02x:") % (int)fp[i];
+    }
+    std::cout << "\n";
 
     return preverified;
   }

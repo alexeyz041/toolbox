@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/ssl">
+        <file>client.pem</file>
+	<file>client.key</file>
+	<file>ca.pem</file>
+    </qresource>
+</RCC>

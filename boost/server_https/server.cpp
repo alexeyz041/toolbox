@@ -20,12 +20,16 @@
 //
 // Test with wget
 // wget https://127.0.0.1:8443 --certificate client.pem --private-key client.key --ca-cert ca.pem --no-check-certificate
+//
+// Certificate fingerprint
+// openssl x509 -noout -fingerprint -sha1 -inform pem -in ca.pem 
 
 #include <cstdlib>
 #include <iostream>
 #include <memory>
 #include <utility>
 #include <boost/bind.hpp>
+#include <boost/format.hpp>
 #include <boost/asio.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/asio/ssl.hpp>
@@ -120,9 +124,6 @@ public:
     }
   }
 
-
-
-
 private:
   ssl_socket socket_;
   enum { max_length = 1024 };
@@ -185,7 +186,16 @@ public:
     char subject_name[256];
     X509* cert = X509_STORE_CTX_get_current_cert(ctx.native_handle());
     X509_NAME_oneline(X509_get_subject_name(cert), subject_name, 256);
-    std::cout << "Verifying " << subject_name << "\n";
+    std::cout << "Verifying " << subject_name << " preverivied: " << preverified << "\n";
+
+    const EVP_MD *fp_type = EVP_sha1();
+    unsigned int fp_size = 0;
+    unsigned char fp[EVP_MAX_MD_SIZE];
+    X509_digest(cert, fp_type, fp, &fp_size);
+    for(int i=0; i < fp_size; i++) {
+	std::cout << boost::format("%02x") % (int)fp[i] << ":";
+    }
+    std::cout << "\n";
 
     return preverified;
   }

@@ -2,5 +2,9 @@ paths.sh
 https
 .qmake.stash
 *.o
+*.pem
+qrc_*
+*.key
+Makefile
 
 

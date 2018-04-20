@@ -3,7 +3,7 @@
 #HEADERS += 
 SOURCES += main.cpp
 
-#RESOURCES += ssl.qrc
+RESOURCES += ssl.qrc
 
 QT += core network
 
