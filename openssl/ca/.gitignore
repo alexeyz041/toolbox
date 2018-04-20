@@ -1,0 +1,5 @@
+*.pem
+index*
+serial*
+*.csr
+*.key

@@ -15,6 +15,11 @@
 // certificate generation
 // https://stackoverflow.com/questions/6452756/exception-running-boost-asio-ssl-example
 //
+// Test with open ssl
+// openssl s_client -connect 127.0.0.1:8443 -cert client.pem -key client.key -CAfile ca.pem
+//
+// Test with wget
+// wget https://127.0.0.1:8443 --certificate client.pem --private-key client.key --ca-cert ca.pem --no-check-certificate
 
 #include <cstdlib>
 #include <iostream>
@@ -78,8 +83,8 @@ public:
   {
     if (!error)
     {
-        std::cout << data_;
-	std::string line(data_);
+	std::string line(data_,bytes_transferred);
+        std::cout << line;
     	std::vector<std::string> strs;
     	boost::split(strs,line,boost::is_any_of(" "));
     	std::string doc = document(strs[0],strs[1]);
@@ -115,6 +120,9 @@ public:
     }
   }
 
+
+
+
 private:
   ssl_socket socket_;
   enum { max_length = 1024 };
@@ -133,13 +141,16 @@ public:
         context_(io_service, boost::asio::ssl::context::sslv23)
   {
     context_.set_options(boost::asio::ssl::context::default_workarounds
-        | boost::asio::ssl::context::no_sslv2
+//        | boost::asio::ssl::context::no_sslv2
 //        | boost::asio::ssl::context::single_dh_use
     );
 //    context_.set_password_callback(boost::bind(&server::get_password, this));
-    context_.use_certificate_chain_file("server.crt");
-    context_.use_private_key_file("server.key", boost::asio::ssl::context::pem);
 //    context_.use_tmp_dh_file("dh512.pem");
+    context_.use_certificate_chain_file("server.pem");
+    context_.use_private_key_file("server.key", boost::asio::ssl::context::pem);
+    context_.load_verify_file("ca.pem");
+    context_.set_verify_mode(boost::asio::ssl::verify_peer | boost::asio::ssl::verify_fail_if_no_peer_cert);
+    context_.set_verify_callback(boost::bind(&server::verify_certificate, this, _1, _2));
 
     session* new_session = new session(io_service_, context_);
     acceptor_.async_accept(new_session->socket(), boost::bind(&server::handle_accept, this, new_session, boost::asio::placeholders::error));
@@ -160,6 +171,25 @@ public:
       delete new_session;
     }
   }
+
+  bool verify_certificate(bool preverified, boost::asio::ssl::verify_context& ctx)
+  {
+    // The verify callback can be used to check whether the certificate that is
+    // being presented is valid for the peer. For example, RFC 2818 describes
+    // the steps involved in doing this for HTTPS. Consult the OpenSSL
+    // documentation for more details. Note that the callback is called once
+    // for each certificate in the certificate chain, starting from the root
+    // certificate authority.
+
+    // In this example we will simply print the certificate's subject name.
+    char subject_name[256];
+    X509* cert = X509_STORE_CTX_get_current_cert(ctx.native_handle());
+    X509_NAME_oneline(X509_get_subject_name(cert), subject_name, 256);
+    std::cout << "Verifying " << subject_name << "\n";
+
+    return preverified;
+  }
+
 
 private:
   boost::asio::io_service& io_service_;

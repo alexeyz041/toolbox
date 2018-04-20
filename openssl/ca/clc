@@ -1,0 +1,7 @@
+openssl genrsa -out client.key 2048
+openssl req -new -key client.key -out client.csr -subj "/C=FI/ST=Pm/O=Hacking Unlimited Co/CN=Betty client"
+openssl ca -in client.csr -out client.pem -config ./ca.conf
+
+openssl genrsa -out server.key 2048
+openssl req -new -key server.key -out server.csr -subj "/C=FI/ST=Pm/O=Hacking Unlimited Co/CN=Betty server"
+openssl ca -in server.csr -out server.pem -config ./ca.conf

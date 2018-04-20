@@ -26,7 +26,6 @@ public:
       const char *host, int port)
     : socket_(io_service, context), host_(host), port_(port)
   {
-    socket_.set_verify_mode(boost::asio::ssl::verify_peer);
     socket_.set_verify_callback(boost::bind(&client::verify_certificate, this, _1, _2));
     boost::asio::async_connect(socket_.lowest_layer(), endpoint_iterator,  boost::bind(&client::handle_connect, this,  boost::asio::placeholders::error));
   }
@@ -131,7 +130,13 @@ int main(int argc, char* argv[])
     boost::asio::ip::tcp::resolver::query query(argv[1], argv[2]);
     boost::asio::ip::tcp::resolver::iterator iterator = resolver.resolve(query);
     boost::asio::ssl::context ctx(boost::asio::ssl::context::sslv23);
+
+    ctx.set_options(boost::asio::ssl::context::default_workarounds);
+    ctx.set_verify_mode(boost::asio::ssl::verify_peer);
+    ctx.use_certificate_chain_file("client.pem");
+    ctx.use_private_key_file("client.key", boost::asio::ssl::context::pem);
     ctx.load_verify_file("ca.pem");
+
     client c(io_service, ctx, iterator, argv[1], atoi(argv[2]));
     io_service.run();
   }
