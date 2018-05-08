@@ -31,7 +31,7 @@ void get_msg(unsigned char *sendbuf,int *sendlen)
 
 //==============================================================================
 
-void client_session(int s2)
+void client_session(int s2,arg_t *arg)
 {
 int count = 0;
 unsigned char recvbuf[64] = {0};
@@ -48,7 +48,7 @@ unsigned char recvbuf[64] = {0};
     	if (result > 0 && FD_ISSET(s2, &fds)) {
 	    result = recv(s2, recvbuf, sizeof(recvbuf), 0);
             if (result > 0) {
-	        printf("rcvd %2d: ", result);
+	        printf("%s:%d rcvd %2d: ", arg->ip,arg->port,result);
 	        for(int i=0; i < result; i++) {
 		    printf("%02x ",recvbuf[i]);
 		}
@@ -66,7 +66,7 @@ unsigned char recvbuf[64] = {0};
 	    printf("select failed\n");
 	    break;
 	}
-
+/*
 	if(count > 1000) {
 	    unsigned char sendbuf[64] = {0};
 	    int sendlen = sizeof(sendbuf);
@@ -83,7 +83,7 @@ unsigned char recvbuf[64] = {0};
 	    }
 	    count = 0;
 	}
-
+*/
     }
 }
 
@@ -106,12 +106,14 @@ struct sockaddr_in sa;
     inet_pton(AF_INET, arg->ip, &sa.sin_addr);
     sa.sin_port = htons(arg->port);
 
+    printf("->%s:%d\n",arg->ip,arg->port);
+
     if(connect(s, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
        printf("Connect failed\n");
        return NULL;
     } 
 
-    client_session(s);    
+    client_session(s,arg);
 
     close(s);
     return NULL;
@@ -120,14 +122,16 @@ struct sockaddr_in sa;
 
 int main(int argc, char **argv)
 {
-pthread_t tid[10] = {0};
+pthread_t tid[2] = {0};
 
-    for(int i=0; i < 10; i++) {
-	arg_t arg = { "127.0.0.1", 30000+(i&1) };
-	pthread_create(&tid[i], NULL, client, &arg);
-    }
+    arg_t arg1 = { "192.168.201.1", 30001 };
+    pthread_create(&tid[0], NULL, client, &arg1);
 
-    for(int i=0; i < 10; i++) {
+    arg_t arg2 = { "192.168.201.1", 30000 };
+    pthread_create(&tid[1], NULL, client, &arg2);
+
+
+    for(int i=0; i < 2; i++) {
 	pthread_join(tid[i],NULL);
     }
     

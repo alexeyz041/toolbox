@@ -17,15 +17,45 @@ typedef struct {
 } arg_t;
 
 
-int cnt = 0;
+int temp = 10000;
+int delta = 100;
 
-void get_msg(unsigned char *sendbuf,int *sendlen)
+int get_temp()
 {
-    sendbuf[0] = 1;
-    sendbuf[1] = 2;
-    sendbuf[2] = 3;
-    sendbuf[3] = cnt++;
-    *sendlen = 4;
+    if(temp > 30000 || temp < 10000) {
+	delta = -delta;
+    }
+    temp += delta;
+    return temp;
+}
+
+
+void get_msg(unsigned char *buf,int *len)
+{
+int id = 0x659;
+int temp = get_temp();
+
+    buf[0] = 'C';
+
+    buf[1] = id & 0xff;
+    buf[2] = (id >> 8) & 0xff;
+    buf[3] = (id >> 16) & 0xff;
+    buf[4] = (id >> 24) & 0xff;
+
+    buf[5] = 2;
+    buf[6] = 8;		//msg len
+
+    buf[7] = 0;
+    buf[8] = 0;
+    buf[9] = 0;
+    buf[10] = 0;
+
+    buf[11] = temp & 0xff;
+    buf[12] = (temp >> 8) & 0xff;
+    buf[13] = (temp >> 16) & 0xff;
+    buf[14] = (temp >> 24) & 0xff;
+
+    *len = 15;
 }
 
 
@@ -157,9 +187,9 @@ pthread_t tid2;
 arg_t arg1 = { 30000 };
 arg_t arg2 = { 30001 };
 
-    pthread_create(&tid1, NULL, server, &arg1);
+//    pthread_create(&tid1, NULL, server, &arg1);
     pthread_create(&tid2, NULL, server, &arg2);
-    pthread_join(tid1,NULL);
+//    pthread_join(tid1,NULL);
     pthread_join(tid2,NULL);
 
     return 0;
