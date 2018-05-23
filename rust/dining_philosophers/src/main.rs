@@ -30,7 +30,7 @@ impl Philosopher {
 	println!("{} is eating.", self.name);
 	let rng_number = rand::thread_rng().gen_range(100,1000);
         thread::sleep(Duration::from_millis(rng_number));
-        println!("{} is done eating.", self.name);
+        println!("{} is done eating (took {}ms).", self.name, rng_number);
     }
 }
 
