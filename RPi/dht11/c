@@ -1,0 +1,6 @@
+gcc -I../../../Adafruit_Python_DHT/source/Raspberry_Pi_2 \
+    read.c \
+    ../../../Adafruit_Python_DHT/source/Raspberry_Pi_2/pi_2_dht_read.c \
+    ../../../Adafruit_Python_DHT/source/Raspberry_Pi_2/pi_2_mmio.c \
+    ../../../Adafruit_Python_DHT/source/common_dht_read.c \
+    -o read
