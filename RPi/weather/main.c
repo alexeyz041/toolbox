@@ -4,7 +4,7 @@
 #include "sql.h"
 #include "http.h"
 #include "calendar.h"
-
+#include "pi_2_dht_read.h"
 
 const char *sql1 =
 "CREATE TABLE IF NOT EXISTS Meas ("
@@ -109,11 +109,17 @@ float hum = 0;
     if(++cnt < 60) return;
     cnt = 0;
 
+    if(pi_2_dht_read(DHT11,4,&hum,&temp) != DHT_SUCCESS) {
+        printf("can\'t read DHT11\n");
+	return;
+    }
+
     time_t t = time (NULL);
     struct tm *timeinfo = localtime (&t);
 
     push(temp,0,timeinfo->tm_hour,timeinfo->tm_min, timeinfo->tm_mday,timeinfo->tm_mon+1,timeinfo->tm_year+1900);
     push(hum, 1,timeinfo->tm_hour,timeinfo->tm_min, timeinfo->tm_mday,timeinfo->tm_mon+1,timeinfo->tm_year+1900);
+    flush();
 }
 
 //===================================================================================
