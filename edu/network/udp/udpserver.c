@@ -64,7 +64,7 @@ int n;
 	hostaddrp = inet_ntoa(clientaddr.sin_addr);
 	printf("server received %d/%d bytes: %s\n", (int)strlen(buf), n, buf);
 
-	n = sendto(sockfd, buf, strlen(buf), 0, (struct sockaddr *) &clientaddr, clientlen);
+	n = sendto(sockfd, buf, strlen(buf)+1, 0, (struct sockaddr *) &clientaddr, clientlen);
 	if (n < 0) 
     	    error("ERROR in sendto");
     }
