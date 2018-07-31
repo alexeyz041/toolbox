@@ -1,4 +1,4 @@
-// send ARP request using raw socket
+// send ARP request or UDP message using raw socket
 
 #include <stddef.h>
 #include <stdio.h>
@@ -94,7 +94,9 @@ fail:
 
 void usage()
 {
-    printf("Usage:\n raw iface ip\n");
+    printf("Usage:\n");
+    printf(" raw iface ip -a  send ARP request\n");
+    printf(" raw iface ip -u  send UDP message\n");
     exit(1);
 }
 
@@ -115,7 +117,7 @@ int fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP);
 }
 
 
-void build_arp(uint8_t *arp,uint8_t *ip,uint8_t *mac,uint8_t *trg_ip)
+int build_arp(uint8_t *arp,uint8_t *ip,uint8_t *mac,uint8_t *trg_ip)
 {
     memset(arp,0xff,6);
     memcpy(arp+6,mac,6);
@@ -130,13 +132,63 @@ void build_arp(uint8_t *arp,uint8_t *ip,uint8_t *mac,uint8_t *trg_ip)
     memcpy(arp+28,ip,4);
     memset(arp+32,0,6);
     memcpy(arp+38,trg_ip,4);
+    return 42;
 }
+
+
+void build_ip(uint8_t *buf,uint8_t *ip,uint8_t *trg_ip,int len)
+{
+int cs = 0;
+int id = 0x1234;
+    len += 20;
+
+    buf[0] = 0x45;
+    buf[1] = 0;
+    buf[2] = (len >> 8) & 0xff;	buf[3] = len;
+    buf[4] = (id >> 8) & 0xff; 	buf[5] = id & 0xff;
+    buf[6] = 0x40; 		buf[7] = 0; 		//flags
+    buf[8] = 0x40; // ttl
+    buf[9] = 0x17; // udp
+    buf[10] = (cs >> 8) & 0xff; buf[11] = cs & 0xff;
+    memcpy(buf+12,ip,4);
+    memcpy(buf+16,trg_ip,4);
+}
+
+#define SRC_PORT 58188
+#define DST_PORT 8080
+char udata[] = "Hello UDP World!";
+
+
+int build_udp(uint8_t *buf,uint8_t *ip,uint8_t *mac,uint8_t *trg_ip)
+{
+int dlen = strlen(udata)+1+8;
+int cs = 0;
+
+//    memset(buf,0xff,6);
+//    memcpy(buf+6,mac,6);
+    memset(buf,0,6);
+    memset(buf+6,0,6);
+    buf[12] = 8;
+    buf[13] = 0;
+
+    build_ip(buf+14,ip,trg_ip,dlen);
+
+    uint8_t *p = buf+14+20;
+    p[0] = (SRC_PORT >> 8) & 0xff; 	p[1] = SRC_PORT & 0xff;
+    p[2] = (DST_PORT >> 8) & 0xff; 	p[3] = DST_PORT & 0xff;
+    p[4] = (dlen >> 8) & 0xff; 		p[5] = dlen & 0xff;
+    p[6] = (cs >> 8) & 0xff; 		p[7] = cs & 0xff;
+    memcpy(p+8,udata,dlen);
+
+    return 34+dlen;
+}
+
 
 
 int main(int argc,char **argv)
 {
 int sock;
-int i;
+int i,len = 0;
 char buffer[1024];
 uint8_t ip[4];
 uint8_t mac[6];
@@ -144,7 +196,7 @@ uint8_t arp[64];
 uint8_t trg_ip[4];
 in_addr_t tmp;
 
-    if(argc != 3) usage();
+    if(argc != 4) usage();
 
     sock = open_ethif(argv[1]);
     if(sock < 0) {
@@ -164,9 +216,16 @@ in_addr_t tmp;
     memcpy(trg_ip,&tmp,4);
     printf("trg IP: %d.%d.%d.%d\n",trg_ip[0],trg_ip[1],trg_ip[2],trg_ip[3]);
 
-    build_arp(arp,ip,mac,trg_ip);
+    if(strcmp(argv[3],"-a") == 0) {
+	len = build_arp(buffer,ip,mac,trg_ip);
+    } else if(strcmp(argv[3],"-u") == 0) {
+	len = build_udp(buffer,ip,mac,trg_ip);
+    } else {
+	printf("unrecognized option %s\n",argv[3]);
+	usage();
+    }
 
-    int nwrite = send(sock,arp,42,0);
+    int nwrite = send(sock,buffer,len,0);
     if(nwrite < 0) {
 	perror("Writing to interface");
 	exit(1);
