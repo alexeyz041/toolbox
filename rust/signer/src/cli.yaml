@@ -1,0 +1,24 @@
+name: signer
+version: "1.0"
+author: LZ
+about: Sign and verify signatures
+args:
+    - sign:
+        short: s
+        long: sign
+        help: create signature
+    - verify:
+        short: v
+        long: verify
+        help: verify signature
+    - key:
+        short: k
+        long: key
+        value_name: KEY
+        help: key file name
+        takes_value: true
+        required: true
+    - INPUT:
+        help: Sets the input file to use
+        required: true
+        index: 1
