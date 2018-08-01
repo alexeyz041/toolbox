@@ -197,6 +197,42 @@ uint16_t id = 0x8397;
     check_cs(buf);
 }
 
+
+uint16_t udp_checksum(const void *buff,size_t len)
+{
+const uint16_t *buf=buff;
+uint16_t *ip_src=(uint16_t *)(buf-4), *ip_dst=(uint16_t *)(buf-2);
+uint32_t sum;
+size_t length=len;
+	// Calculate the sum
+    sum = 0;
+    while (len > 1) {
+    	sum += *buf++;
+        if (sum & 0x80000000)
+        	sum = (sum & 0xFFFF) + (sum >> 16);
+        len -= 2;
+    }
+
+    if ( len & 1 )	// Add the padding if the packet lenght is odd
+    	sum += *((uint8_t *)buf);
+
+    // Add the pseudo-header
+    sum += *(ip_src++);
+    sum += *ip_src;
+
+    sum += *(ip_dst++);
+    sum += *ip_dst;
+
+    sum += htons(IPPROTO_UDP);
+    sum += htons(length);
+
+    while (sum >> 16)
+    	sum = (sum & 0xFFFF) + (sum >> 16);
+
+    return (uint16_t)(~sum);
+}
+
+
 #define SRC_PORT 43966
 #define DST_PORT 8080
 char udata[] = "Hello Network!";
@@ -204,7 +240,8 @@ char udata[] = "Hello Network!";
 
 int build_udp(uint8_t *buf,uint8_t *ip,uint8_t *mac,uint8_t *trg_ip)
 {
-int dlen = strlen(udata)+1+8;
+int dlen = strlen(udata)+1;
+int ulen = dlen+8;
 int cs = 0;
 
 //    memset(buf,0xff,6);
@@ -214,16 +251,20 @@ int cs = 0;
 
     buf[12] = 8;
     buf[13] = 0;
-    build_ip(buf+14,ip,trg_ip,dlen);
+    build_ip(buf+14,ip,trg_ip,ulen);
 
     uint8_t *p = buf+14+20;
     p[0] = (SRC_PORT >> 8) & 0xff; 	p[1] = SRC_PORT & 0xff;
     p[2] = (DST_PORT >> 8) & 0xff; 	p[3] = DST_PORT & 0xff;
-    p[4] = (dlen >> 8) & 0xff; 		p[5] = dlen & 0xff;
+    p[4] = (ulen >> 8) & 0xff; 		p[5] = ulen & 0xff;
     p[6] = (cs >> 8) & 0xff; 		p[7] = cs & 0xff;
     memcpy(p+8,udata,dlen);
 
-    return 34+dlen;
+    cs = udp_checksum(p,ulen);
+    p[7] = (cs >> 8) & 0xff;
+    p[6] = cs & 0xff;
+
+    return 34+ulen;
 }
 
 
