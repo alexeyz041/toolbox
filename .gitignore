@@ -1,3 +1,4 @@
 live/
 x264/
 *.o
+*.lock
