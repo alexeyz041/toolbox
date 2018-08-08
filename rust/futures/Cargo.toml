@@ -1,7 +1,8 @@
 [package]
-name = "search_hash"
+name = "futures"
 version = "0.1.0"
 authors = ["Alexey"]
 
 [dependencies]
-easy-hash = "*"
+futures = "*"
+tokio-core = "*"

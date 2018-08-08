@@ -1,6 +1,6 @@
 [package]
 name = "framed"
 version = "0.1.0"
-authors = ["Alexey <alexeyz041@gmail.com>"]
+authors = ["Alexey"]
 
 [dependencies]
