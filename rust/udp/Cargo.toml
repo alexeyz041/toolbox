@@ -1,0 +1,15 @@
+[package]
+name = "udp"
+version = "0.1.0"
+authors = ["lz"]
+
+[dependencies]
+futures="0.1.24"
+tokio-core="0.1.17"
+tokio="0.1.8"
+tokio-codec="0.1.0"
+bytes="0.4.10"
+tokio-udp="0.1.2"
+tokio-timer="0.2.6"
+tokio-threadpool = "0.1.6"
+
