@@ -1,0 +1,18 @@
+#!/bin/bash
+
+sudo ip link set dev pin1 down 
+sudo brctl delbr pin1
+sudo ip link set dev pin2 down
+sudo brctl delbr pin2
+
+sudo ip link set dev pout1 down
+sudo brctl delbr pout1
+sudo ip link set dev pout2 down
+sudo brctl delbr pout2
+
+sudo ip link set dev vm9 down
+sudo ip link set dev vm10 down
+sudo ip link del vm9
+
+sudo ip netns del ns1
+sudo ip netns del ns2

@@ -23,7 +23,7 @@
 #include <arpa/inet.h>
 #include <sys/time.h>
 #include <netdb.h>
-
+#include <pthread.h>
 
 
 int open_ethif(const char *ifname)
@@ -94,10 +94,47 @@ fail:
 void usage()
 {
     printf("Usage:\n");
-    printf(" rsend if-from if-to\n");
+    printf(" rsend if-from if-to [-s]\n");
     exit(1);
 }
 
+
+typedef struct {
+    int s;
+    int s2;
+    char *from;
+    char *to;
+} S2;
+
+
+void *loop2(void *p)
+{
+S2 *s2 = (S2 *)p;
+int cnt = 0;
+char buffer[2048];
+    for(;;) {
+        int nread = recv(s2->s2,buffer,sizeof(buffer),0);
+	if(nread < 0) {
+    	    perror("Reading from interface");
+    	    exit(1);
+        }
+
+	printf("%3d %s -> %s\n", cnt++, s2->to, s2->from);
+	for(int i=0; i < nread; i++) {
+	    printf("%02x ",buffer[i] & 0xff);
+	    if((i & 0x0f) == 0x0f) printf("\n");
+	}
+	printf("\n");
+
+	int nwrite = send(s2->s,buffer,nread,0);
+	if(nwrite < 0) {
+	    perror("Writing to interface");
+	    exit(1);
+	}
+    }
+
+    return NULL;
+}
 
 
 int main(int argc,char **argv)
@@ -105,7 +142,10 @@ int main(int argc,char **argv)
 int sock,sock2;
 char buffer[2048];
 int cnt = 0;
-    if(argc != 3) usage();
+pthread_t t;
+S2 s2;
+
+    if(argc != 3 && argc != 4) usage();
 
     sock = open_ethif(argv[1]);
     if(sock < 0) {
@@ -117,6 +157,18 @@ int cnt = 0;
     if(sock < 0) {
 	perror("Open interface");
 	exit(1);
+    }
+
+    s2.s = sock;
+    s2.s2 = sock2;
+    s2.from = argv[1];
+    s2.to = argv[2];
+
+    if(argc != 4) {
+        if(pthread_create(&t, NULL, loop2, &s2)) {
+	    fprintf(stderr, "Error creating thread\n");
+	    return 1;
+        }
     }
 
     for(;;) {
@@ -137,6 +189,14 @@ int cnt = 0;
 	if(nwrite < 0) {
 	    perror("Writing to interface");
 	    exit(1);
+	}
+    }
+
+
+    if(argc != 4) {
+	if(pthread_join(t, NULL)) {
+	    fprintf(stderr, "Error joining thread\n");
+	    return 2;
 	}
     }
 

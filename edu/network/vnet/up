@@ -1,0 +1,63 @@
+#!/bin/bash
+
+set -x
+
+sudo ip netns add ns1
+sudo ip netns add ns2
+
+sudo brctl addbr pin1
+sudo ip link set dev pin1 up 
+sudo brctl addbr pin2
+sudo ip link set dev pin2 up 
+
+sudo brctl addbr pout1
+sudo ip link set dev pout1 up 
+sudo brctl addbr pout2
+sudo ip link set dev pout2 up 
+
+sudo ip netns exec ns1 brctl addbr din
+sudo ip netns exec ns1 ip link set dev din up 
+sudo ip netns exec ns1 brctl addbr dout
+sudo ip netns exec ns1 ip link set dev dout up 
+
+sudo ip netns exec ns2 brctl addbr din
+sudo ip netns exec ns2 ip link set dev din up 
+sudo ip netns exec ns2 brctl addbr dout
+sudo ip netns exec ns2 ip link set dev dout up 
+
+sudo ip link add dev vm1 type veth peer name vm2
+sudo ip link set vm2 netns ns1
+sudo ip link set dev vm1 up 
+sudo ip netns exec ns1 ip link set dev vm2 up 
+sudo ip netns exec ns1 brctl addif din vm2
+sudo brctl addif pin1 vm1
+
+sudo ip link add dev vm3 type veth peer name vm4
+sudo ip link set vm4 netns ns1
+sudo ip link set dev vm3 up 
+sudo ip netns exec ns1 ip link set dev vm4 up 
+sudo ip netns exec ns1 brctl addif dout vm4
+sudo brctl addif pout1 vm3
+
+sudo ip link add dev vm5 type veth peer name vm6
+sudo ip link set vm6 netns ns2
+sudo ip link set dev vm5 up 
+sudo ip netns exec ns2 ip link set dev vm6 up 
+sudo ip netns exec ns2 brctl addif din vm6
+sudo brctl addif pin2 vm5
+
+sudo ip link add dev vm7 type veth peer name vm8
+sudo ip link set vm8 netns ns2
+sudo ip link set dev vm7 up 
+sudo ip netns exec ns2 ip link set dev vm8 up 
+sudo ip netns exec ns2 brctl addif dout vm8
+sudo brctl addif pout2 vm7
+
+sudo ip link add dev vm9 type veth peer name vm10
+sudo ip link set dev vm9 up 
+sudo ip link set dev vm10 up 
+sudo brctl addif pout1 vm9
+sudo brctl addif pout2 vm10
+
+
+#sudo ip netns exec ns1 bash

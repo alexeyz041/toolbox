@@ -1,1 +1,1 @@
-gcc rfwd.c -o rfwd
+gcc rfwd.c -o rfwd -lpthread
