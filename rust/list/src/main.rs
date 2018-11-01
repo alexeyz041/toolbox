@@ -1,5 +1,5 @@
-use List::*;
 use std::fmt::Write;
+use List::*;
 
 enum List {
     // Cons: Tuple struct that wraps an element and a pointer to the next node
@@ -26,14 +26,13 @@ impl List {
         Cons(elem, Box::new(self))
     }
 
-    fn rem(self) -> List
-    {
-	match self {
+    fn rem(self) -> List {
+        match self {
             Cons(_, tail) => *tail,
             Nil => Nil,
         }
     }
-/*
+    /*
     fn get(&self) -> u32
     {
 	match *self {
@@ -47,23 +46,23 @@ impl List {
     fn len(&self) -> u32 {
         match *self {
             Cons(_, ref tail) => 1 + tail.len(),
-            Nil => 0
+            Nil => 0,
         }
     }
-    
+
     // Return the length of the list, non recursive version
     fn len_nr(&self) -> u32 {
         let mut len = 0;
         let mut p = self;
         loop {
-    	match *p {
-        	Cons(_, ref tail) => {
-        	    len += 1;
-        	    p = tail;	
-        	},
-        	Nil => {
-        	    return len;
-        	}
+            match *p {
+                Cons(_, ref tail) => {
+                    len += 1;
+                    p = tail;
+                }
+                Nil => {
+                    return len;
+                }
             }
         }
     }
@@ -72,58 +71,53 @@ impl List {
         let mut len = 0;
         let mut p = self;
         while let Cons(_, ref tail) = *p {
-    	len += 1;
-    	p = tail;	
+            len += 1;
+            p = tail;
         }
-	len
+        len
     }
 
     // Return representation of the list as a (heap allocated) string
     fn stringify_nr(&self) -> String {
-	let mut buf = String::new();
-	let mut p = self;
-	loop {
-    	match *p {
-        	Cons(head, ref tail) => {
-            	write!(buf,"{}, ", head).unwrap();
-            	p = tail;
-        	},
-        	Nil => {
-            	write!(buf,"Nil").unwrap();
-            	break;
-        	},
-	    }
+        let mut buf = String::new();
+        let mut p = self;
+        loop {
+            match *p {
+                Cons(head, ref tail) => {
+                    write!(buf, "{}, ", head).unwrap();
+                    p = tail;
+                }
+                Nil => {
+                    write!(buf, "Nil").unwrap();
+                    break;
+                }
+            }
         }
         buf
     }
-    
+
     fn stringify(&self) -> String {
         match *self {
-            Cons(head, ref tail) => {
-                format!("{}, {}", head, tail.stringify())
-            },
-            Nil => {
-                format!("Nil")
-            },
+            Cons(head, ref tail) => format!("{}, {}", head, tail.stringify()),
+            Nil => "Nil".to_string(),
         }
     }
-    
+
     fn iter(&self) -> ListIter {
-	ListIter { p: &self }
+        ListIter { p: &self }
     }
 }
 
-
 impl<'a> Iterator for ListIter<'a> {
     type Item = u32;
-    
+
     fn next(&mut self) -> Option<u32> {
-	match *self.p {
+        match *self.p {
             Cons(ele, ref tail) => {
-        	self.p = tail;
-        	Some(ele)
+                self.p = tail;
+                Some(ele)
             }
-            Nil => None
+            Nil => None,
         }
     }
 }
@@ -131,10 +125,10 @@ impl<'a> Iterator for ListIter<'a> {
 impl<'a> IntoIterator for &'a List {
     type Item = u32;
     type IntoIter = ListIter<'a>;
-    
+
     fn into_iter(self) -> ListIter<'a> {
-	//ListIter { p: self }
-	self.iter()
+        //ListIter { p: self }
+        self.iter()
     }
 }
 
@@ -148,16 +142,24 @@ fn main() {
     list = list.prepend(3);
 
     // Show the final state of the list
-    println!("linked list has length: {}, non reccursive {}", list.len(), list.len_nr());
+    println!(
+        "linked list has length: {}, non reccursive {}",
+        list.len(),
+        list.len_nr()
+    );
     println!("{}", list.stringify());
-    
+
     for i in &list {
-	println!("{}",i);
+        println!("{}", i);
     }
-    
+
     // remove some elements
     list = list.rem();
     list = list.rem();
     println!("{}", list.stringify_nr());
-    println!("linked list has length: {}, non reccursive {}", list.len(), list.len_nr2());
+    println!(
+        "linked list has length: {}, non reccursive {}",
+        list.len(),
+        list.len_nr2()
+    );
 }
