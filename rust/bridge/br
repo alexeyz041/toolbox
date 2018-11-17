@@ -1,0 +1,16 @@
+#!/bin/bash
+
+set -x
+
+if [ "$1" != "down" ]
+then
+    sudo brctl addbr br1
+    sudo ip link set dev br1 up 
+    sudo brctl addbr br2
+    sudo ip link set dev br2 up 
+else
+    sudo ip link set dev br1 down 
+    sudo brctl delbr br1
+    sudo ip link set dev br2 down
+    sudo brctl delbr br2
+fi
