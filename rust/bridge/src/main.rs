@@ -16,6 +16,7 @@ use std::iter::Iterator;
 
 extern crate rand;
 use rand::Rng;
+use rand::distributions::{Distribution, Uniform};
 #[macro_use]
 extern crate lazy_static;
 
@@ -33,27 +34,35 @@ struct DelayedPacket {
 
 lazy_static! {
 	// probability of event in %
-    static ref Forward_P: u16 = 95;
     static ref Drop_P: u16 = 5;
     static ref Delay_P: u16 = 10;
-    static ref Corrupt_P: u16 = 3;
+    static ref Corrupt_P: u16 = 5;
 
-    static ref Max_Delay_Time: u16 = 60;	//sec
+    static ref Max_Delay_Time: u16 = 10;	//sec
+
+    static ref Prob: Uniform<u16> = Uniform::from(0..100);
 }
 
-
+        
 fn get_action() -> Action
 {
-    let p = rand::thread_rng().gen_range(0, 100);
+    let mut rng = rand::thread_rng();
+
+    let p = Prob.sample(&mut rng);
     if p <= *Corrupt_P {
     	return Action::Corrupt;
     }
+
+    let p = Prob.sample(&mut rng);
     if p <= *Drop_P {
     	return Action::Drop;
     }
+
+    let p = Prob.sample(&mut rng);
 	if p <= *Delay_P {
 		return Action::Delay;
 	}
+
 	Action::Forward
 }
 
@@ -76,12 +85,12 @@ fn process_packet(packet: &[u8], delayed: &Arc<Mutex<Vec<DelayedPacket>>>) -> Op
       	},
                
         Action::Corrupt => {
-				println!("forward");
+				println!("corrupt");
       			Some(corrupt(packet))
         },
         
         Action::Delay => {
-		        let t = rand::thread_rng().gen_range(0, *Max_Delay_Time);
+		        let t = rand::thread_rng().gen_range(1, *Max_Delay_Time);
 				println!("delay {}",t);
 				let d = DelayedPacket { packet: packet.to_vec(), until: Instant::now() + Duration::from_secs(t.into()) };
 				delayed.lock().unwrap().push(d);
@@ -235,7 +244,7 @@ fn main()
 			loop {
 				let mut index = 0;
 				let mut found = false;
-				if let Some((ix,pkt)) = delayed1.iter().enumerate().find(|(_, d)| d.until >= now) {
+				if let Some((ix,pkt)) = delayed1.iter().enumerate().find(|(_, d)| d.until < now) {
 					ctx2_tx.send(pkt.packet.clone()).unwrap();
 					index = ix;
 					found = true;
