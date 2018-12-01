@@ -1,0 +1,9 @@
+[package]
+name = "nativer"
+version = "0.1.0"
+authors = ["lz"]
+
+[dependencies]
+
+[build-dependencies]
+bindgen = "0.20.0"

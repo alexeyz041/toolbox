@@ -1,0 +1,7 @@
+[package]
+name = "lib_ex"
+version = "0.1.0"
+authors = ["lz"]
+
+[dependencies]
+lib_test = { path = "../lib_test" }

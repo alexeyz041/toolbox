@@ -1,0 +1,8 @@
+[package]
+name = "mmap"
+version = "0.1.0"
+authors = ["lz"]
+
+[dependencies]
+criterion = "0.1.2"
+rand = "0.6"

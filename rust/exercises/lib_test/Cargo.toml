@@ -1,0 +1,6 @@
+[package]
+name = "lib_test"
+version = "0.1.0"
+authors = ["lz"]
+
+[dependencies]

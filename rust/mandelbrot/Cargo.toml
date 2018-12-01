@@ -1,0 +1,9 @@
+[package]
+name = "mandelbrot"
+version = "0.1.0"
+authors = ["lz"]
+
+[dependencies]
+image = "0.13.0"
+num = "0.1.42"
+crossbeam = "0.2.8"

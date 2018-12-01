@@ -1,0 +1,9 @@
+[package]
+name = "ex2"
+version = "0.1.0"
+authors = ["lz"]
+
+[dependencies]
+#tokio-core="*"
+futures="0.1.24"
+tokio="0.1.8"
