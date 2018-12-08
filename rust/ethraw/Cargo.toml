@@ -4,7 +4,8 @@ version = "0.1.0"
 authors = ["lz"]
 
 [dependencies]
-pnet = { version = "0.21.0" }
+#pnet = { version = "0.21.0", features = ["serde"] }
+pnet = { path = "/home/lz/git/libpnet", features = ["serde"] }
 lazy_static = "1.2.0"
 serde = "1.0.81"
 serde_derive = "1.0.81"

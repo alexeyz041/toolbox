@@ -38,7 +38,7 @@ use pnet::packet::udp::{UdpPacket,MutableUdpPacket};
 use pnet::packet::Packet;
 use pnet::util::MacAddr;
 use pnet::packet::ipv4;
-use pnet::packet::udp::ipv4_checksum;
+use pnet::packet::udp;
 use pnet::packet::icmp::echo_reply::{MutableEchoReplyPacket,IcmpCodes};
 use pnet::packet::icmp;
 
@@ -57,14 +57,10 @@ const UDP_HEADER_LEN: usize = 8;
 const ICMP_HEADER_LEN: usize = 8;
 const ARP_HEADER_LEN: usize = 28;
 
-#[derive(Serialize, Deserialize)]
-#[serde(remote = "MacAddr")]
-struct MacAddrDef(u8, u8, u8, u8, u8, u8);
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 struct Config {
 	my_ip: Ipv4Addr,
-	#[serde(with = "MacAddrDef")]
 	my_mac: MacAddr,
 }
 
@@ -74,6 +70,7 @@ impl Config {
 	    let mut s = String::new();
     	f.read_to_string(&mut s).expect("something went wrong reading config file");
 		let cfg: Config = serde_yaml::from_str(&s).unwrap();
+		println!("config: {:?}",cfg);
 		cfg
 	}
 }
@@ -159,14 +156,14 @@ fn send_icmp_packet(source_ip: Ipv4Addr,source_mac: MacAddr, target_ip: Ipv4Addr
 
 
 fn send_udp_packet(source_ip: Ipv4Addr,source_mac: MacAddr, target_ip: Ipv4Addr, target_mac: MacAddr,
-    source_port: u16, target_port: u16, payload: &[u8]) -> Vec<u8> {
+    source_port: u16, target_port: u16, payload: &[u8],id2: u16) -> Vec<u8> {
     
     let mut ethernet_buffer = vec![0u8; ETH_HEADER_LEN+IPV4_HEADER_LEN+UDP_HEADER_LEN+payload.len()];
     let mut ethernet_packet = MutableEthernetPacket::new(&mut ethernet_buffer).unwrap();
 
     ethernet_packet.set_destination(target_mac);
     ethernet_packet.set_source(source_mac);
-    ethernet_packet.set_ethertype(EtherTypes::Arp);
+    ethernet_packet.set_ethertype(EtherTypes::Ipv4);
 
     let mut ip_buffer = vec![0u8; IPV4_HEADER_LEN+UDP_HEADER_LEN+payload.len()];
 	let mut ip_packet = MutableIpv4Packet::new(&mut ip_buffer).unwrap();
@@ -177,6 +174,8 @@ fn send_udp_packet(source_ip: Ipv4Addr,source_mac: MacAddr, target_ip: Ipv4Addr,
     ip_packet.set_ttl(4);
     ip_packet.set_source(source_ip);
     ip_packet.set_destination(target_ip);
+    ip_packet.set_flags(Ipv4Flags::DontFragment);
+    ip_packet.set_identification(id2);   
     ip_packet.set_next_level_protocol(IpNextHeaderProtocols::Udp);
     let checksum = ipv4::checksum(&ip_packet.to_immutable());
     ip_packet.set_checksum(checksum);
@@ -187,7 +186,7 @@ fn send_udp_packet(source_ip: Ipv4Addr,source_mac: MacAddr, target_ip: Ipv4Addr,
     udp_packet.set_destination(target_port);
     udp_packet.set_length((UDP_HEADER_LEN + payload.len()) as u16);
     udp_packet.set_payload(payload);
-    let checksum = ipv4_checksum(&udp_packet.to_immutable(), &source_ip, &target_ip);
+    let checksum = udp::ipv4_checksum(&udp_packet.to_immutable(), &source_ip, &target_ip);
     udp_packet.set_checksum(checksum);
     
     ip_packet.set_payload(&udp_packet.to_immutable().packet());
@@ -197,7 +196,7 @@ fn send_udp_packet(source_ip: Ipv4Addr,source_mac: MacAddr, target_ip: Ipv4Addr,
 
 //=============================================================================
     
-fn handle_udp_packet(source: IpAddr, destination: IpAddr, packet: &[u8], source_mac: MacAddr) -> Option<Vec<u8>> {
+fn handle_udp_packet(source: IpAddr, destination: IpAddr, packet: &[u8], source_mac: MacAddr, id: u16) -> Option<Vec<u8>> {
     let udp = UdpPacket::new(packet);
     if let Some(udp) = udp {
         println!(
@@ -210,7 +209,7 @@ fn handle_udp_packet(source: IpAddr, destination: IpAddr, packet: &[u8], source_
         );
         if destination == config.my_ip && udp.get_destination() == 7 {
         	if let IpAddr::V4(source) = source {
-		        return Some(send_udp_packet(config.my_ip,config.my_mac, source, source_mac,7,udp.get_source(),udp.payload()));
+		        return Some(send_udp_packet(config.my_ip,config.my_mac, source, source_mac,7,udp.get_source(),udp.payload(),id));
 		    }
         }
     } else {
@@ -309,7 +308,7 @@ fn handle_tcp_packet(source: IpAddr, destination: IpAddr, packet: &[u8]) -> Opti
 fn handle_transport_protocol(source: IpAddr,destination: IpAddr, protocol: IpNextHeaderProtocol, packet: &[u8], source_mac: MacAddr, id: u16) -> Option<Vec<u8>> {
     match protocol {
         IpNextHeaderProtocols::Udp => {
-            handle_udp_packet(source, destination, packet, source_mac)
+            handle_udp_packet(source, destination, packet, source_mac,id)
         }
         IpNextHeaderProtocols::Tcp => {
             handle_tcp_packet(source, destination, packet)
@@ -447,7 +446,7 @@ fn main() {
 //		my_mac: MacAddr::new(1,2,3,4,5,6),
 //	};
 //	let serialized = serde_yaml::to_string(&cfg).unwrap();
-//    println!("serialized = {}", serialized);
+//  println!("serialized = {}", serialized);
 
 //   let iface_name = match env::args().nth(1) {
 //        Some(n) => n,
@@ -473,6 +472,7 @@ fn main() {
     };
 */
 	let iface = Iface::without_packet_info("raw1", Mode::Tap).unwrap();
+	cmd("ip", &["addr", "add", "dev", iface.name(), "172.16.0.122/24"]);
 	cmd("ip", &["link", "set", "up", "dev", iface.name()]);
     let mut buffer = vec![0; 1504];
     loop {
