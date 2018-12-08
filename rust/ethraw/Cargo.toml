@@ -1,0 +1,12 @@
+[package]
+name = "ethraw"
+version = "0.1.0"
+authors = ["lz"]
+
+[dependencies]
+pnet = { version = "0.21.0" }
+lazy_static = "1.2.0"
+serde = "1.0.81"
+serde_derive = "1.0.81"
+serde_yaml = "0.8.8"
+tun-tap = "0.1.2"
