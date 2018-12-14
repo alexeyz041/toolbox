@@ -1,0 +1,8 @@
+[package]
+name = "ht"
+version = "0.1.0"
+authors = ["lz"]
+
+[dependencies]
+hwloc = "0.5.0"
+libc = "0.2.45"
