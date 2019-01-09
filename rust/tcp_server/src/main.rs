@@ -2,6 +2,7 @@
 use std::io::Write;
 use std::net::TcpListener;
 use std::thread;
+use std::io::Read;
 
 
 fn main()
@@ -10,9 +11,14 @@ fn main()
     println!("listening started, ready to accept");
     for stream in listener.incoming() {
         thread::spawn(|| {
-            let mut stream = stream.unwrap();
-            stream.write(b"Hello World\r\n").unwrap();
-            println!("connection from {}",stream.peer_addr().unwrap());
+	    let mut stream = stream.unwrap();
+	    println!("connection from {}",stream.peer_addr().unwrap());
+	    loop {
+        	let mut buf = [0u8; 10];
+		let rcvd = stream.read(&mut buf).unwrap();
+        	println!("Received {} bytes", rcvd);
+		stream.write(&buf).unwrap();
+	    }
         });
     }
 }
