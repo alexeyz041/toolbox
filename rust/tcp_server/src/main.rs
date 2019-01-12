@@ -14,10 +14,12 @@ fn main()
 	    let mut stream = stream.unwrap();
 	    println!("connection from {}",stream.peer_addr().unwrap());
 	    loop {
-        	let mut buf = [0u8; 10];
+        	let mut buf = [0u8; 32];
 		let rcvd = stream.read(&mut buf).unwrap();
         	println!("Received {} bytes", rcvd);
-		stream.write(&buf).unwrap();
+		if rcvd > 0 {
+		    stream.write(&buf[..rcvd]).unwrap();
+		}
 	    }
         });
     }
