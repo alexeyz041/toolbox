@@ -1,0 +1,10 @@
+[package]
+name = "loop"
+version = "0.1.0"
+authors = ["lz"]
+
+[dependencies]
+futures = "0.1.25"
+tokio = "0.1.13"
+tokio-timer = "0.2.8"
+lazycell = "1.2.1"
