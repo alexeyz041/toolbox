@@ -1,0 +1,7 @@
+[package]
+name = "weak"
+version = "0.1.0"
+authors = ["lz"]
+
+[dependencies]
+lazycell = "1.2.1"
