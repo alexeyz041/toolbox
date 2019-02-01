@@ -1,0 +1,3 @@
+gcc rd.c -o rd -lrt
+gcc wr.c -o wr -lrt
+
