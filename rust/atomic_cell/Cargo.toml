@@ -1,0 +1,9 @@
+[package]
+name = "atomic_cell"
+version = "0.1.0"
+authors = ["lz"]
+edition = "2018"
+
+[dependencies]
+crossbeam = "0.7.1"
+owning_ref = "0.4.0"
