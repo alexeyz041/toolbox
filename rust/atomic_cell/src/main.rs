@@ -3,6 +3,8 @@ extern crate crossbeam;
 
 use crossbeam::atomic::AtomicCell;
 use std::ptr::null_mut;
+use std::default::Default;
+
 
 #[derive(Debug,Clone)]
 struct Key {
@@ -15,22 +17,30 @@ impl Key {
 	}
 }
 
-
-struct KeyKeeper {
-	key: AtomicCell<*mut Key>,
+impl Default for Key {	
+	fn default() -> Self {
+		Self::new(0)
+	}
 }
 
-impl KeyKeeper {
+
+struct Atomic<T> {
+	ac: AtomicCell<*mut T>,
+}
+
+impl<T> Atomic<T>
+	where T: ?Sized + Clone + Default
+{
 	fn new() -> Self {
-		println!("is atomic {}",AtomicCell::<*mut Key>::is_lock_free());
-		KeyKeeper {
-			key: AtomicCell::new(null_mut()),
+		println!("is atomic {}",AtomicCell::<*mut T>::is_lock_free());
+		Atomic {
+			ac: AtomicCell::new(null_mut()),
 		}
 	}
 	
-	fn keep(&self, k: &Key) {
-		let p : * mut Key = Box::into_raw(Box::new(k.clone()));
-		let old : * mut Key = self.key.swap(p);
+	fn store(&self, k: &T) {
+		let p : * mut T = Box::into_raw(Box::new(k.clone()));
+		let old : * mut T = self.ac.swap(p);
 		if !old.is_null() {
 			unsafe {
 				println!("drop 1");
@@ -39,10 +49,10 @@ impl KeyKeeper {
 		}
 	}
 	
-	fn get(&self) -> Key {
-		let p : * mut Key = self.key.load();
+	fn get(&self) -> T {
+		let p : * mut T = self.ac.load();
 		if p.is_null() {
-			Key::new(0)
+			T::default()
 		} else {
 			unsafe {
 				(*p).clone()
@@ -51,9 +61,9 @@ impl KeyKeeper {
 	}
 }
 
-impl Drop for KeyKeeper {
+impl<T> Drop for Atomic<T> {
     fn drop(&mut self) {
-		let p : * mut Key = self.key.swap(null_mut());
+		let p : * mut T = self.ac.swap(null_mut());
 		if !p.is_null() {
 			unsafe {
 		        println!("Dropping!");
@@ -68,9 +78,9 @@ fn main()
 {
 	let k1 = Key::new(1);
 	let k2 = Key::new(2);
-	let s = KeyKeeper::new();
-	s.keep(&k1);
-	s.keep(&k2);
+	let s = Atomic::<Key>::new();
+	s.store(&k1);
+	s.store(&k2);
 
 	let k = s.get();
 	println!("{:?}",k);
