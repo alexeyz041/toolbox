@@ -5,5 +5,5 @@ authors = ["lz"]
 edition = "2018"
 
 [dependencies]
-crossbeam = "0.7.1"
-owning_ref = "0.4.0"
+futures = "0.1.25"
+tokio = "0.1.13"

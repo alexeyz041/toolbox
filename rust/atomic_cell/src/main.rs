@@ -1,9 +1,14 @@
 
-extern crate crossbeam;
-
-use crossbeam::atomic::AtomicCell;
+use std::sync::atomic::{AtomicPtr, Ordering};
 use std::ptr::null_mut;
-use std::default::Default;
+
+extern crate futures;
+extern crate tokio;
+
+use futures::future::*;
+use std::sync::Arc;
+use tokio::runtime::Runtime;
+use futures::future::ok;
 
 
 #[derive(Debug,Clone)]
@@ -17,45 +22,38 @@ impl Key {
 	}
 }
 
-impl Default for Key {	
-	fn default() -> Self {
-		Self::new(0)
-	}
-}
 
 
 struct Atomic<T> {
-	ac: AtomicCell<*mut T>,
+	ac: AtomicPtr<T>,
 }
 
 impl<T> Atomic<T>
-	where T: ?Sized + Clone + Default
+	where T: ?Sized + Clone + Send + Sync
 {
 	fn new() -> Self {
-		println!("is atomic {}",AtomicCell::<*mut T>::is_lock_free());
 		Atomic {
-			ac: AtomicCell::new(null_mut()),
+			ac: AtomicPtr::new(null_mut()),
 		}
 	}
 	
 	fn store(&self, k: &T) {
 		let p : * mut T = Box::into_raw(Box::new(k.clone()));
-		let old : * mut T = self.ac.swap(p);
+		let old : * mut T = self.ac.swap(p, Ordering::SeqCst);
 		if !old.is_null() {
 			unsafe {
-				println!("drop 1");
  				drop(Box::from_raw(old));
 			}
 		}
 	}
 	
-	fn get(&self) -> T {
-		let p : * mut T = self.ac.load();
+	fn get(&self) -> Option<T> {
+		let p : * mut T = self.ac.load(Ordering::SeqCst);
 		if p.is_null() {
-			T::default()
+			None
 		} else {
 			unsafe {
-				(*p).clone()
+				Some((*p).clone())
 			}
 		}
 	}
@@ -63,31 +61,49 @@ impl<T> Atomic<T>
 
 impl<T> Drop for Atomic<T> {
     fn drop(&mut self) {
-		let p : * mut T = self.ac.swap(null_mut());
+		let p : * mut T = self.ac.swap(null_mut(), Ordering::SeqCst);
 		if !p.is_null() {
 			unsafe {
-		        println!("Dropping!");
 				drop(Box::from_raw(p));
 			}
 		}       
     }
 }
 
+unsafe impl<T> Send for Atomic<T> {}
+unsafe impl<T> Sync for Atomic<T> {}
 
 fn main()
 {
 	let k1 = Key::new(1);
-	let k2 = Key::new(2);
-	let s = Atomic::<Key>::new();
+	let s = Arc::new(Atomic::<Key>::new());
 	s.store(&k1);
+	let k = s.get();
+	println!("{:?}",k);
+
+	let k2 = Key::new(2);
 	s.store(&k2);
-
 	let k = s.get();
 	println!("{:?}",k);
+	
+	let mut rt = Runtime::new().unwrap();
+	let lf = ok(())
+				.and_then({ let s = s.clone(); move |_| {
+					let k3 = Key::new(3);
+					s.store(&k3);
+					Ok(())
+				}});
+	rt.spawn(lf);
 
-	let k = s.get();
-	println!("{:?}",k);
-
-	let k = s.get();
-	println!("{:?}",k);
+	loop {	
+		let k = s.get();
+		println!("{:?}",k);
+		if let Some(k) = k {
+			if k.data[0] == 3 {
+				break;
+			}
+		}
+	}
+	
+	rt.shutdown_on_idle().wait().unwrap();
 }
