@@ -19,7 +19,7 @@ use cairo::LineJoin;
 
 #[derive(Debug)]
 struct Data<T> {
-	current: T,
+	val: T,
 	time: T
 }
 
@@ -33,7 +33,12 @@ fn convert_c(c: u16) -> f64 {
 	1000f64 * (c as f64 - 2048f64) * 3.3f64 / 4096f64 / RS
 }
 
-fn load(fnm: &str, n: usize) -> (Vec<Data<f64>>,f64,f64,f64)
+fn convert_u(c: u16) -> f64 {
+	1000f64 * (c as f64 - 2048f64) * 3.3f64 / 4096f64
+}
+
+
+fn load(fnm: &str, n: usize, u: bool) -> (Vec<Data<f64>>,f64,f64,f64)
 {
 	println!("Loading {}",fnm);
 	let mut data = Vec::new();
@@ -47,18 +52,22 @@ fn load(fnm: &str, n: usize) -> (Vec<Data<f64>>,f64,f64,f64)
     	let w = l.split(',').collect::<Vec<&str>>();
     	
     	let time = &w[0];
-    	let current = &w[1];
+    	let val = &w[1];
     	
-		let t = time.parse::<u16>().unwrap();
-		let c = current.parse::<u16>().unwrap();
-      	data.push(Data{ current: convert_c(c), time: convert_t(t) });
+	let t = time.parse::<u16>().unwrap();
+	let v = val.parse::<u16>().unwrap();
+	if u {
+      	    data.push(Data{ val: convert_u(v), time: convert_t(t) });
+	} else {
+	    data.push(Data{ val: convert_c(v), time: convert_t(t) });
+	}
     }
 
-	let maxc = data.iter().map(|d| OrderedFloat(d.current)).max().unwrap().into_inner();
-	let minc = data.iter().map(|d| OrderedFloat(d.current)).min().unwrap().into_inner();
-	let maxt = data.last().unwrap().time;
+    let maxc = data.iter().map(|d| OrderedFloat(d.val)).max().unwrap().into_inner();
+    let minc = data.iter().map(|d| OrderedFloat(d.val)).min().unwrap().into_inner();
+    let maxt = data.last().unwrap().time;
 
-	(data, maxt, minc, maxc)
+    (data, maxt, minc, maxc)
 }
 
 
@@ -119,7 +128,7 @@ fn draw_grid(cr: &Context, nx: i32, ny: i32)
 }
 
 
-fn draw_metrics(cr: &Context, nx: i32, ny: i32,sx: f64,sy: f64)
+fn draw_metrics(cr: &Context, nx: i32, ny: i32,sx: f64,sy: f64, u:bool)
 {
 	cr.set_font_size(0.025);
 
@@ -142,8 +151,11 @@ fn draw_metrics(cr: &Context, nx: i32, ny: i32,sx: f64,sy: f64)
 	}
 	
 	cr.move_to(0.03, 0.03);
-	cr.show_text("mA");
-
+	if u {
+	    cr.show_text("mV");
+	} else {
+	    cr.show_text("mA");
+	}
 	cr.move_to(1.0-0.03, 0.5+0.03);
 	cr.show_text("uS");
 }
@@ -154,19 +166,30 @@ fn main()
 	let mut series = Vec::new();
 	let mut n = 0;
 	let mut i = 1;
-	let mut fnm = env::args().skip(i).next().expect("Missing input file");
-	if fnm == "-l" {
-		n = env::args().skip(i+1).next().expect("Missing length").parse::<usize>().unwrap();
+	let mut u = false;
+	let mut fnm = String::new();
+	while env::args().len() > i {
+	    fnm = env::args().skip(i).next().expect("Missing input file");
+	    if fnm == "-l" {
+    		n = env::args().skip(i+1).next().expect("Missing length").parse::<usize>().unwrap();
 		i += 2;
-		fnm = env::args().skip(i).next().expect("Missing input file");
+		continue;
+	    }
+	    if fnm == "-u" {
+		u = true;
+		i += 1;
+		continue;
+	    } 
+	    break;	    
 	}
- 	let (data, mut maxt, mut minc, mut maxc) = load(&fnm, n);
+
+ 	let (data, mut maxt, mut minc, mut maxc) = load(&fnm, n, u);
  	series.push(data);
 	i += 1;
 
 	while env::args().len() > i {
 		let fnm2 = env::args().skip(i).next().expect("Missing input file");
- 		let (data2, maxt2, minc2, maxc2) = load(&fnm2, n);
+ 		let (data2, maxt2, minc2, maxc2) = load(&fnm2, n, u);
  		if minc2 < minc {
  			minc = minc2;
  		}
@@ -213,7 +236,7 @@ fn main()
 
   	draw_axis(&cr,nx,ny);
   	draw_grid(&cr,nx,ny);
-  	draw_metrics(&cr,nx,ny,sx,sy);
+  	draw_metrics(&cr,nx,ny,sx,sy,u);
   	
   	let kx = 0.9 / ((nx as f64) * sx);
   	let ky = 1.0 / ((2.*ny as f64) * sy); 
@@ -228,8 +251,8 @@ fn main()
 	    	cr.set_source_rgb(0.0, 0.0, 1.0);
 	    }
 		for i in 0..d.len()-1 {
-  			cr.move_to(0.1+kx*d[i].time,   0.5-ky*d[i].current);
-  			cr.line_to(0.1+kx*d[i+1].time, 0.5-ky*d[i+1].current);
+  			cr.move_to(0.1+kx*d[i].time,   0.5-ky*d[i].val);
+  			cr.line_to(0.1+kx*d[i+1].time, 0.5-ky*d[i+1].val);
   		}
   		count += 1;
 	    cr.stroke();

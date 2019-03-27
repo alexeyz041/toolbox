@@ -1,0 +1,237 @@
+
+use std::io::BufReader;
+use std::io::BufRead;
+use std::fs::File;
+use std::env;
+
+extern crate ordered_float;
+use ordered_float::*;
+
+extern crate cairo;
+use cairo::Context;
+use cairo::ImageSurface;
+use cairo::Format;
+use cairo::LineCap;
+use cairo::LineJoin;
+
+#[derive(Debug)]
+struct Data<T> {
+	val: T,
+	time: T
+}
+
+fn convert_t(t: u16) -> f64 {
+	t as f64 * 1.17f64
+}
+
+const RS : f64 = 0.5;
+
+fn convert_c(c: u16) -> f64 {
+	1000f64 * (c as f64 - 2048f64) * 3.3f64 / 4096f64 / RS
+}
+
+fn convert_u(c: u16) -> f64 {
+	1000f64 * (c as f64 - 2048f64) * 3.3f64 / 4096f64
+}
+
+
+
+fn load(fnm: &str, n: usize, u: bool) -> Vec<Data<f64>>
+{
+	println!("Loading {}",fnm);
+	let mut data = Vec::new();
+	let f = File::open(fnm).unwrap();
+    let file = BufReader::new(&f);
+    for line in file.lines() {
+    	if n != 0 && data.len() >= n {
+    		break;
+    	}
+    	let l = line.unwrap();
+    	let w = l.split(',').collect::<Vec<&str>>();
+    	
+    	let time = &w[0];
+    	let val = &w[1];
+    	
+		let t = time.parse::<u16>().unwrap();
+		let v = if u {
+			convert_u(val.parse::<u16>().unwrap())
+		} else {
+			convert_c(val.parse::<u16>().unwrap())
+		};
+      	data.push(Data{ val: v, time: convert_t(t) });
+    }
+	data
+}
+
+fn draw_axis(cr: &Context, nx: i32, ny: i32)
+{
+	cr.set_source_rgb(0.0, 0.0, 0.0);
+	cr.move_to(0.0, 0.9);	//x
+	cr.line_to(1.0, 0.9);
+
+	cr.move_to(0.1, 0.0);	//y
+	cr.line_to(0.1, 1.0);
+	
+	let stepx = 0.9 / (nx as f64);
+	for x in 0..nx {
+		cr.move_to(0.1+(x as f64)*stepx, 0.9-0.01);
+		cr.line_to(0.1+(x as f64)*stepx, 0.9+0.01);
+	}
+	
+	let stepy = 0.9 / (ny as f64);
+	for y in 1..ny {
+		cr.move_to(0.1+0.01, 0.9-(y as f64)*stepy);
+		cr.line_to(0.1-0.01, 0.9-(y as f64)*stepy);
+	}
+	
+	// arrows
+	cr.move_to(0.1, 0.0); 	cr.line_to(0.1+0.01, 0.02);
+	cr.move_to(0.1, 0.0); 	cr.line_to(0.1-0.01, 0.02);
+
+	cr.move_to(1.0, 0.9); 	cr.line_to(1.-0.02, 0.9-0.01);
+	cr.move_to(1.0, 0.9); 	cr.line_to(1.-0.02, 0.9+0.01);
+	cr.stroke();
+	
+}
+
+fn draw_grid(cr: &Context, nx: i32, ny: i32)
+{
+	cr.set_dash(&[0.005,0.01], 0.);
+    cr.set_line_cap(LineCap::Round);
+    cr.set_line_join(LineJoin::Bevel);
+	
+	let stepx = 0.9 / (nx as f64);
+	for x in 1..nx {
+		cr.move_to(0.1+(x as f64)*stepx, 0.01);
+		cr.line_to(0.1+(x as f64)*stepx, 0.89);
+	}
+	
+	let stepy = 0.9 / (ny as f64);
+	for y in 1..ny {
+		cr.move_to(0.1+0.02, 0.9-(y as f64)*stepy);
+		cr.line_to(1.0-0.01, 0.9-(y as f64)*stepy);
+	}
+
+	cr.stroke();
+	cr.set_dash(&[1.0], 0.);
+}
+
+fn draw_metrics(cr: &Context, nx: i32, ny: i32,sx: f64,sy: f64)
+{
+	cr.set_font_size(0.025);
+
+	let stepx = 0.9 / (nx as f64);
+	for x in 1..nx {
+		cr.move_to(0.1+(x as f64)*stepx, 0.9+0.03);
+		let val = sx * (x as f64);
+		cr.show_text(&format!("{}",val));
+	}
+	
+	let stepy = 0.9 / (ny as f64);
+	for y in 1..ny {
+		cr.move_to(0.03, 0.9-(y as f64)*stepy);
+		let val = sy * (y as f64);
+		cr.show_text(&format!("{}",val));
+	}
+	
+	cr.move_to(0.03, 0.03);
+    cr.show_text("mV");
+	cr.move_to(1.0-0.04, 0.9+0.03);
+	cr.show_text("mA");
+}
+
+fn main() {
+	let s = env::args().skip(1).next().expect("Missing start offset").parse::<usize>().unwrap();
+	let n = env::args().skip(2).next().expect("Missing length").parse::<usize>().unwrap();
+	let fnm = env::args().skip(3).next().expect("Missing input file");
+	let fnm2 = env::args().skip(4).next().expect("Missing input file");
+ 	let i_data = load(&fnm, n, false);
+ 	let u_data = load(&fnm2, n, true);
+
+	let (maxc, maxt) = i_data.iter().map(|d| (OrderedFloat(d.val), d.time))
+		.max_by(|(x,_),(y,_)| x.cmp(y)).unwrap();
+	let maxc = maxc.into_inner();
+	let maxp = i_data.iter().position(|d| d.time == maxt).unwrap();
+		
+	let (minc, mint) = i_data.iter().map(|d| (OrderedFloat(d.val), d.time))
+		.min_by(|(x,_),(y,_)| x.cmp(y)).unwrap();
+	let minc = minc.into_inner();
+	let minp = i_data.iter().position(|d| d.time == mint).unwrap();
+
+	println!("max ct {} {} {}",maxc,maxt,maxp);
+	println!("min ct {} {} {}",minc,mint,minp);
+		
+	let maxu = u_data.iter().map(|d| OrderedFloat(d.val)).max().unwrap().into_inner();
+	let minu = u_data.iter().map(|d| OrderedFloat(d.val)).min().unwrap().into_inner();
+
+	println!("max u {}",maxu);
+	println!("min u {}",minu);
+	
+	let w = 800;
+	let h = 800;
+	let surface = ImageSurface::create(Format::ARgb32, w, h).expect("Can't create surface");
+    let cr = Context::new(&surface);
+    
+    cr.scale(w.into(), h.into());
+
+    cr.set_line_width(0.001);
+    cr.set_source_rgb(1.0, 1.0, 1.0);
+	cr.rectangle(0.0, 0.0, 1.0, 1.0);
+	cr.fill();
+  	
+  	let mut sx = 10.;
+  	let mut maxx = maxc;
+  	if maxx < f64::abs(minc) {
+  		maxx = f64::abs(minc);
+  	}
+ 	let mut nx = 1 + ((maxx/sx).floor() as i32);  	
+	while nx > 14 {
+		sx *= 2.;
+		nx = 1 + ((maxx/sx).floor() as i32);
+	}
+	
+  	let mut sy = 10.;
+  	let mut maxy = maxu;
+  	if maxy < f64::abs(minu) {
+  		maxy = f64::abs(minu);
+  	}
+  	let mut ny = 1 + ((maxy/sy).floor() as i32);
+	while ny > 14 {
+		sy *= 2.;
+		ny = 1 + ((maxy/sy).floor() as i32);
+	}
+
+	println!("nx {} ny {}",nx,ny);
+
+  	draw_axis(&cr,nx,ny);
+  	draw_grid(&cr,nx,ny);
+  	draw_metrics(&cr,nx,ny,sx,sy);
+  	
+  	let kx = 0.9 / ((nx as f64) * sx);
+  	let ky = 0.9 / ((ny as f64) * sy); 
+
+   	cr.set_source_rgb(1.0, 0.0, 0.0);
+	for i in s..minp {
+		cr.move_to(0.1-kx*i_data[i].val,   0.9+ky*u_data[i].val);
+		cr.line_to(0.1-kx*i_data[i+1].val, 0.9+ky*u_data[i+1].val);
+	}
+    cr.stroke();
+
+//   cr.set_source_rgb(0.0, 1.0, 0.0);
+   	cr.set_source_rgb(0.0, 0.0, 1.0);
+	for i in maxp..n-1 {
+		cr.move_to(0.1+kx*i_data[i].val,   0.9+ky*u_data[i].val);
+		cr.line_to(0.1+kx*i_data[i+1].val, 0.9+ky*u_data[i+1].val);
+	}
+    cr.stroke();
+    
+	let ofn = "bh.png";
+    let mut file = File::create(&ofn).expect("Couldn't create output file");
+    match surface.write_to_png(&mut file) {
+        Ok(_) => println!("{} created",&ofn),
+        Err(_) => println!("Error creating {}",&ofn),
+	}
+	
+}
+
+    
