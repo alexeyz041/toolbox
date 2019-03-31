@@ -48,7 +48,7 @@ fn list_files(dir: &str) -> Vec<String> {
         let path = entry.path();
         if !path.is_dir() {
 	    if let Some(ext) = path.extension() {
-		if ext == "txt" {
+		if ext == "txt" && path.file_name().unwrap() != "mean.txt" {
             	    list.push(path.to_str().unwrap().to_string());
 		}
 	    }
@@ -57,6 +57,16 @@ fn list_files(dir: &str) -> Vec<String> {
     list
 }
 
+
+fn scale_k(pos: usize) -> f64 {
+    if pos < 5 {
+	return 0.;
+    }
+    if pos >= 5 && pos < 180 {
+	return ((pos-5) as f64)*15./175.
+    }
+    15.
+}
 
 fn main()
 {   
@@ -92,13 +102,13 @@ fn main()
 	    }
 	}
 
-	let mut res = Vec::new();
+    let mut res = Vec::new();
     for i in 0..series[0].len() {
     	let mut sum : f64 = 0.0;
     	for j in 0..series.len() {
     		sum += series[j][i].val as f64;
     	}
-    	res.push(Data { val: (sum/(series.len() as f64)) as u16, time: series[0][i].time })
+    	res.push(Data { val: (sum/(series.len() as f64) - scale_k(i)) as u16, time: series[0][i].time })
     }
     
     {

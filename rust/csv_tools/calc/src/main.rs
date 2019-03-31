@@ -75,15 +75,16 @@ fn main()
 	let minc = minc.into_inner();
 	let minp = data.iter().position(|d| d.time == mint).unwrap();
 	
-	println!("max ct {} {} {}",maxc,maxt,maxp);
-	println!("min ct {} {} {}",minc,mint,minp);
+	println!("max ct {:.1} ma {:.1} us {:.1} pt", maxc, maxt, maxp);
+	println!("min ct {:.1} ma {:.1} us {:.1} pt", minc, mint, minp);
 
 	let t0 = (maxp+minp)/2;
 	let i1 = integ(&data,0,t0);
 	let i2 = integ(&data,t0,data.len()-1);
 	
-	println!("i1 = {}",i1);
-	println!("i2 = {}",i2);
+	println!("i1 = {:.1} uJ",i1/1000.);
+	println!("i2 = {:.1} uJ",i2/1000.);
+    println!("COP = {:.1}%",f64::abs(100.*i2/i1));
 }
 
     

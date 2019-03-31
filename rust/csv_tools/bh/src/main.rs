@@ -14,7 +14,7 @@ use cairo::Format;
 use cairo::LineCap;
 use cairo::LineJoin;
 
-#[derive(Debug)]
+#[derive(Debug,Clone,Copy)]
 struct Data<T> {
 	val: T,
 	time: T
@@ -140,11 +140,27 @@ fn draw_metrics(cr: &Context, nx: i32, ny: i32,sx: f64,sy: f64)
 	cr.show_text("mA");
 }
 
+
+struct Serie {
+    i_data: Vec<Data<f64>>,
+    minc: f64,
+    maxc: f64,
+    u_data: Vec<Data<f64>>,
+    minu: f64,
+    maxu: f64,
+    maxp: usize,
+    minp: usize,
+}
+
 fn main() {
-	let s = env::args().skip(1).next().expect("Missing start offset").parse::<usize>().unwrap();
-	let n = env::args().skip(2).next().expect("Missing length").parse::<usize>().unwrap();
-	let fnm = env::args().skip(3).next().expect("Missing input file");
-	let fnm2 = env::args().skip(4).next().expect("Missing input file");
+    let s = env::args().skip(1).next().expect("Missing start offset").parse::<usize>().unwrap();
+    let n = env::args().skip(2).next().expect("Missing length").parse::<usize>().unwrap();
+    let mut i = 3;
+    let mut series = Vec::new();
+    while i < env::args().count() {
+	let fnm = env::args().skip(i).next().expect("Missing input file");
+	let fnm2 = env::args().skip(i+1).next().expect("Missing input file");
+	i += 2;
  	let i_data = load(&fnm, n, false);
  	let u_data = load(&fnm2, n, true);
 
@@ -166,70 +182,83 @@ fn main() {
 
 	println!("max u {}",maxu);
 	println!("min u {}",minu);
-	
-	let w = 800;
-	let h = 800;
-	let surface = ImageSurface::create(Format::ARgb32, w, h).expect("Can't create surface");
+
+	series.push( Serie { i_data, u_data, maxc, minc, maxu, minu, maxp, minp } );
+    }
+
+    let w = 800;
+    let h = 800;
+    let surface = ImageSurface::create(Format::ARgb32, w, h).expect("Can't create surface");
     let cr = Context::new(&surface);
     
     cr.scale(w.into(), h.into());
 
     cr.set_line_width(0.001);
     cr.set_source_rgb(1.0, 1.0, 1.0);
-	cr.rectangle(0.0, 0.0, 1.0, 1.0);
-	cr.fill();
+    cr.rectangle(0.0, 0.0, 1.0, 1.0);
+    cr.fill();
   	
-  	let mut sx = 10.;
-  	let mut maxx = maxc;
-  	if maxx < f64::abs(minc) {
-  		maxx = f64::abs(minc);
-  	}
- 	let mut nx = 1 + ((maxx/sx).floor() as i32);  	
-	while nx > 14 {
-		sx *= 2.;
-		nx = 1 + ((maxx/sx).floor() as i32);
-	}
+    let mut sx = 10.;
+    let mut maxx = series.iter().map(|s| OrderedFloat(s.maxc)).max().unwrap().into_inner();
+    let maxx2 = series.iter().map(|s| OrderedFloat(f64::abs(s.minc))).max().unwrap().into_inner();
+    if maxx < maxx2 {
+	maxx = maxx2;
+    }
+    let mut nx = 1 + ((maxx/sx).floor() as i32);  	
+    while nx > 14 {
+	sx *= 2.;
+	nx = 1 + ((maxx/sx).floor() as i32);
+    }
 	
-  	let mut sy = 10.;
-  	let mut maxy = maxu;
-  	if maxy < f64::abs(minu) {
-  		maxy = f64::abs(minu);
-  	}
-  	let mut ny = 1 + ((maxy/sy).floor() as i32);
-	while ny > 14 {
-		sy *= 2.;
-		ny = 1 + ((maxy/sy).floor() as i32);
-	}
+    let mut sy = 10.;
+    let mut maxy = series.iter().map(|s| OrderedFloat(s.maxu)).max().unwrap().into_inner();
+    let maxy2 = series.iter().map(|s| OrderedFloat(f64::abs(s.minu))).max().unwrap().into_inner();
+    if maxy < maxy2 {
+  	maxy = maxy2;
+    }
+    let mut ny = 1 + ((maxy/sy).floor() as i32);
+    while ny > 14 {
+	sy *= 2.;
+	ny = 1 + ((maxy/sy).floor() as i32);
+    }
 
-	println!("nx {} ny {}",nx,ny);
+    println!("nx {} ny {}",nx,ny);
 
-  	draw_axis(&cr,nx,ny);
-  	draw_grid(&cr,nx,ny);
-  	draw_metrics(&cr,nx,ny,sx,sy);
+    draw_axis(&cr,nx,ny);
+    draw_grid(&cr,nx,ny);
+    draw_metrics(&cr,nx,ny,sx,sy);
   	
-  	let kx = 0.9 / ((nx as f64) * sx);
-  	let ky = 0.9 / ((ny as f64) * sy); 
-
-   	cr.set_source_rgb(1.0, 0.0, 0.0);
-	for i in s..minp {
-		cr.move_to(0.1-kx*i_data[i].val,   0.9+ky*u_data[i].val);
-		cr.line_to(0.1-kx*i_data[i+1].val, 0.9+ky*u_data[i+1].val);
+    let kx = 0.9 / ((nx as f64) * sx);
+    let ky = 0.9 / ((ny as f64) * sy); 
+    let mut count = 0;
+    for se in &series {
+        match count {
+	    0 => cr.set_source_rgb(1.0, 0.0, 0.0),
+   	    1 => cr.set_source_rgb(0.0, 0.0, 1.0),
+   	    _ => cr.set_source_rgb(0.0, 1.0, 0.0),
 	}
-    cr.stroke();
 
-//   cr.set_source_rgb(0.0, 1.0, 0.0);
-   	cr.set_source_rgb(0.0, 0.0, 1.0);
-	for i in maxp..n-1 {
-		cr.move_to(0.1+kx*i_data[i].val,   0.9+ky*u_data[i].val);
-		cr.line_to(0.1+kx*i_data[i+1].val, 0.9+ky*u_data[i+1].val);
+        for i in s..se.minp {
+	    cr.move_to(0.1-kx*se.i_data[i].val,   0.9+ky*se.u_data[i].val);
+	    cr.line_to(0.1-kx*se.i_data[i+1].val, 0.9+ky*se.u_data[i+1].val);
+        }
+        cr.stroke();
+
+	if series.len() == 1 {
+	    cr.set_source_rgb(0.0, 0.0, 1.0);
 	}
-    cr.stroke();
-    
+	for i in se.maxp..n-1 {
+		cr.move_to(0.1+kx*se.i_data[i].val,   0.9+ky*se.u_data[i].val);
+		cr.line_to(0.1+kx*se.i_data[i+1].val, 0.9+ky*se.u_data[i+1].val);
+	}
+        cr.stroke();
+	count += 1;
+    }
 	let ofn = "bh.png";
-    let mut file = File::create(&ofn).expect("Couldn't create output file");
-    match surface.write_to_png(&mut file) {
-        Ok(_) => println!("{} created",&ofn),
-        Err(_) => println!("Error creating {}",&ofn),
+        let mut file = File::create(&ofn).expect("Couldn't create output file");
+        match surface.write_to_png(&mut file) {
+            Ok(_) => println!("{} created",&ofn),
+            Err(_) => println!("Error creating {}",&ofn),
 	}
 	
 }
