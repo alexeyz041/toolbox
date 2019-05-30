@@ -1,0 +1,4 @@
+#!/bin/bash
+
+gcc certreq.c -o certreq -lcrypto
+
