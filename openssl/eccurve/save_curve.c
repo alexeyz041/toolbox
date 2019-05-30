@@ -4,13 +4,17 @@
 #include <openssl/obj_mac.h>
 #include <openssl/ec.h>
 #include <openssl/pem.h>
+#include <openssl/bio.h>
+#include <openssl/err.h>
+#include <openssl/bn.h>
 
 
 void handleErrors()
 {
-    printf("error occured");
+    printf("error occured\n");
     exit(-1);
 }
+
 
 EC_GROUP *create_curve(void)
 {
@@ -93,6 +97,8 @@ EC_GROUP *curve = create_curve();
     FILE *f = fopen("curve.pem","w");
     PEM_write_ECPKParameters(f, curve);
     fclose(f);
+
+    EC_GROUP_free(curve);
 
     return 0;
 }
