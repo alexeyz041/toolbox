@@ -1,0 +1,4 @@
+#!/bin/bash
+
+gcc sign.c -o sign -lcrypto
+
