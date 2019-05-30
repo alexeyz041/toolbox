@@ -1,0 +1,4 @@
+#!/bin/bash
+
+gcc save_curve.c -o save_curve -lcrypto
+
