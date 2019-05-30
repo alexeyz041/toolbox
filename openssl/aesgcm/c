@@ -1,0 +1,4 @@
+#!/bin/bash
+
+gcc aesgcm.c -o aesgcm -lcrypto
+
