@@ -39,7 +39,7 @@ BIO             *out = NULL, *bio_err = NULL;
 const char      *szCountry = "CA";
 const char      *szProvince = "BC";
 const char      *szCity = "Vancouver";
-const char      *szOrganization = "Dynamsoft";
+const char      *szOrganization = "SlowHacking Co Ltd";
 const char      *szCommon = "localhost";
 
 const char      *szPath = "x509Req.pem";
@@ -95,6 +95,40 @@ const char      *szPath = "x509Req.pem";
     if (ret != 1){
 	goto free_all;
     }
+
+//----------
+    struct stack_st_X509_EXTENSION *exts = NULL;
+    X509_EXTENSION *ex;
+    
+    exts = sk_X509_EXTENSION_new_null();
+    ASN1_OCTET_STRING *os = ASN1_OCTET_STRING_new();
+    int nid = OBJ_create("2.5.29.41", "CompanyName", "Company Name");
+    ASN1_OCTET_STRING_set(os,"ABC Corp",8);   
+    ex = X509_EXTENSION_create_by_NID( NULL, nid, 0, os );
+    sk_X509_EXTENSION_push(exts, ex);
+
+    unsigned char data[20] = {1,2,3,4,5,6,7,8,9};
+    //RAND_bytes(data, sizeof(data));
+    //data[0] &= 0x7F;
+
+    // build big number from our bytes
+    BIGNUM* bn = BN_new();
+    BN_bin2bn(data, sizeof(data), bn);
+
+    // build the ASN1_INTEGER from our BIGNUM
+    ASN1_INTEGER* asnInt = ASN1_INTEGER_new();
+    BN_to_ASN1_INTEGER(bn, asnInt);
+
+    // cleanup
+    //ASN1_INTEGER_free(asnInt);
+    //BN_free(bn);
+
+    nid = OBJ_create("2.5.29.42", "Bin data", "Bin data");
+    ex = X509_EXTENSION_create_by_NID( NULL, nid, 0, asnInt );
+    sk_X509_EXTENSION_push(exts, ex);
+
+    X509_REQ_add_extensions(x509_req, exts);
+//----
 
     // 4. set public key of x509 req
     pKey = EVP_PKEY_new();

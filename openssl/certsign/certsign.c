@@ -40,13 +40,37 @@ roBgmjSpnqKqBiBDkoY2YUET2qmGjAu9\n\
 
 char request_str[] =
 "-----BEGIN CERTIFICATE REQUEST-----\n\
-MIIBDzCBtQIBADBWMQswCQYDVQQGEwJDQTELMAkGA1UECAwCQkMxEjAQBgNVBAcM\n\
-CVZhbmNvdXZlcjESMBAGA1UECgwJRHluYW1zb2Z0MRIwEAYDVQQDDAlsb2NhbGhv\n\
-c3QwVjAQBgcqhkjOPQIBBgUrgQQACgNCAARFFFiMFFTFwYaa/nL+M/9GDnqXv/1Q\n\
-yYJH5T47DZDo9i7O8gbPMwFuDjOzdAk9qiC6cBA9w1DRcgqTcV5TAg9ioAAwCgYI\n\
-KoZIzj0EAwIDSQAwRgIhAKgbH6bZYrjcUTHBHLu/f8Kesos+7VriFo15GiUcvrnS\n\
-AiEAxZRCrjRYUwcYKNCqL7MGKbDTioHoNyQjE+GObf9ip2k=\n\
+MIIBVzCB/QIBADBfMQswCQYDVQQGEwJDQTELMAkGA1UECAwCQkMxEjAQBgNVBAcM\n\
+CVZhbmNvdXZlcjEbMBkGA1UECgwSU2xvd0hhY2tpbmcgQ28gTHRkMRIwEAYDVQQD\n\
+DAlsb2NhbGhvc3QwVjAQBgcqhkjOPQIBBgUrgQQACgNCAASm9+0AZI+fBcUkKAeq\n\
+Tyc+SmrifnVr8QA+J2/nOo9XaYdCtZml/A+so5Zj4Wvcm2mgczJoASQato/j3yZl\n\
+pkwVoD8wPQYJKoZIhvcNAQkOMTAwLjAPBgNVHSkECEFCQyBDb3JwMBsGA1UdKgQU\n\
+AQIDBAUGBwgJAAAAAAAAAAAAAAAwCgYIKoZIzj0EAwIDSQAwRgIhANqqDLeqhxbu\n\
+i0oWBkHp6ryK0rWbY9e2XIBtzxS1doelAiEAp36uiypQaJTgz1OMiJQj1vWTu/hh\n\
+9c9pk31oE+0cGwo=\n\
 -----END CERTIFICATE REQUEST-----";
+
+int addExtension(X509 *cert, int nid, char *value)
+{
+    X509_EXTENSION *ex = NULL;
+    X509V3_CTX ctx;
+
+    // This sets the 'context' of the extensions. No configuration database
+    X509V3_set_ctx_nodb(&ctx);
+
+    // Issuer and subject certs: both the target since it is self signed, no request and no CRL
+    X509V3_set_ctx(&ctx, cert, cert, NULL, NULL, 0);
+    ex = X509V3_EXT_conf_nid(NULL, &ctx, nid, value);
+    if (!ex) {
+        return 0;
+    }
+
+    int result = X509_add_ext(cert, ex, -1);
+
+    X509_EXTENSION_free(ex);
+
+    return (result == 0) ? 1 : 0;
+}
 
 
 int main()
@@ -210,7 +234,23 @@ int main()
    * Add X509V3 extensions                                       *
    * ------------------------------------------------------------*/
   X509V3_set_ctx(&ctx, cacert, newcert, NULL, NULL, 0);
-  X509_EXTENSION *ext;
+
+    struct stack_st_X509_EXTENSION *exts = X509_REQ_get_extensions(certreq);
+    int n = sk_X509_EXTENSION_num(exts);
+    printf("n ext %d\n",n);
+
+    X509_EXTENSION *ext = sk_X509_EXTENSION_value(exts, 0);
+//    ASN1_OBJECT *obj = X509_EXTENSION_get_object(ext);
+//    char buf[100] = {0};
+//    OBJ_obj2txt(buf, 100, obj, 1);
+//    printf("%s\n",buf);
+
+    X509_add_ext(cert, ext, -1);
+
+//    addExtension(newcert, nid, "1111");
+
+//  X509_EXTENSION *ext;
+//  X509_add_extensions(newcert, exts);
 
   /* ----------------------------------------------------------- *
    * Set digest type, sign new certificate with CA's private key *
