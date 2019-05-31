@@ -14,17 +14,19 @@
 #include <openssl/x509v3.h>
 
 /*********** where is the ca certificate .pem file ****************************/
-#define CACERT          "./cacert.pem"
+#define CACERT          "./clca.pem"
 /*********** where is the ca's private key file *******************************/
-#define CAKEY           "./cakey.pem"
+#define CAKEY           "./clca-key.pem"
+
 /*********** The password for the ca's private key ****************************/
-#define PASS            "ca-secret"
+//#define PASS            "ca-secret"
 
 BIO               *reqbio = NULL;
 BIO               *outbio = NULL;
 X509                *cert = NULL;
 X509_REQ         *certreq = NULL;
 
+/*
 char request_str[] =
 "-----BEGIN CERTIFICATE REQUEST-----\n\
 MIIBBDCBrwIBADBKMQswCQYDVQQGEwJKUDEOMAwGA1UECAwFVG9reW8xETAPBgNV\n\
@@ -34,6 +36,18 @@ BAoMCEZyYW5rNEREMRgwFgYDVQQDDA93d3cuZXhhbXBsZS5jb20wXDANBgkqhkiG\n\
 AQEFBQADQQByOV52Y17y8xw1V/xvru3rLPrVxYAXS5SgvNpfBsj38lNVtTvuH/Mg\n\
 roBgmjSpnqKqBiBDkoY2YUET2qmGjAu9\n\
 -----END CERTIFICATE REQUEST-----";
+*/
+
+char request_str[] =
+"-----BEGIN CERTIFICATE REQUEST-----\n\
+MIIBDzCBtQIBADBWMQswCQYDVQQGEwJDQTELMAkGA1UECAwCQkMxEjAQBgNVBAcM\n\
+CVZhbmNvdXZlcjESMBAGA1UECgwJRHluYW1zb2Z0MRIwEAYDVQQDDAlsb2NhbGhv\n\
+c3QwVjAQBgcqhkjOPQIBBgUrgQQACgNCAARFFFiMFFTFwYaa/nL+M/9GDnqXv/1Q\n\
+yYJH5T47DZDo9i7O8gbPMwFuDjOzdAk9qiC6cBA9w1DRcgqTcV5TAg9ioAAwCgYI\n\
+KoZIzj0EAwIDSQAwRgIhAKgbH6bZYrjcUTHBHLu/f8Kesos+7VriFo15GiUcvrnS\n\
+AiEAxZRCrjRYUwcYKNCqL7MGKbDTioHoNyQjE+GObf9ip2k=\n\
+-----END CERTIFICATE REQUEST-----";
+
 
 int main()
 {
@@ -94,7 +108,7 @@ int main()
     exit -1;
    }
 
-  if (! (ca_privkey = PEM_read_PrivateKey( fp, NULL, NULL, PASS))) {
+  if (! (ca_privkey = PEM_read_PrivateKey( fp, NULL, NULL, NULL /*PASS*/))) {
     BIO_printf(outbio, "Error importing key content from file\n");
     exit -1;
    }
