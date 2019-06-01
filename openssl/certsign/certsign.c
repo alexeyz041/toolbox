@@ -26,29 +26,8 @@ BIO               *outbio = NULL;
 X509                *cert = NULL;
 X509_REQ         *certreq = NULL;
 
-/*
-char request_str[] =
-"-----BEGIN CERTIFICATE REQUEST-----\n\
-MIIBBDCBrwIBADBKMQswCQYDVQQGEwJKUDEOMAwGA1UECAwFVG9reW8xETAPBgNV\n\
-BAoMCEZyYW5rNEREMRgwFgYDVQQDDA93d3cuZXhhbXBsZS5jb20wXDANBgkqhkiG\n\
-9w0BAQEFAANLADBIAkEAm/xmkHmEQrurE/0re/jeFRLl8ZPjBop7uLHhnia7lQG/\n\
-5zDtZIUC3RVpqDSwBuw/NTweGyuP+o8AG98HxqxTBwIDAQABoAAwDQYJKoZIhvcN\n\
-AQEFBQADQQByOV52Y17y8xw1V/xvru3rLPrVxYAXS5SgvNpfBsj38lNVtTvuH/Mg\n\
-roBgmjSpnqKqBiBDkoY2YUET2qmGjAu9\n\
------END CERTIFICATE REQUEST-----";
-*/
 
-char request_str[] =
-"-----BEGIN CERTIFICATE REQUEST-----\n\
-MIIBVzCB/QIBADBfMQswCQYDVQQGEwJDQTELMAkGA1UECAwCQkMxEjAQBgNVBAcM\n\
-CVZhbmNvdXZlcjEbMBkGA1UECgwSU2xvd0hhY2tpbmcgQ28gTHRkMRIwEAYDVQQD\n\
-DAlsb2NhbGhvc3QwVjAQBgcqhkjOPQIBBgUrgQQACgNCAASm9+0AZI+fBcUkKAeq\n\
-Tyc+SmrifnVr8QA+J2/nOo9XaYdCtZml/A+so5Zj4Wvcm2mgczJoASQato/j3yZl\n\
-pkwVoD8wPQYJKoZIhvcNAQkOMTAwLjAPBgNVHSkECEFCQyBDb3JwMBsGA1UdKgQU\n\
-AQIDBAUGBwgJAAAAAAAAAAAAAAAwCgYIKoZIzj0EAwIDSQAwRgIhANqqDLeqhxbu\n\
-i0oWBkHp6ryK0rWbY9e2XIBtzxS1doelAiEAp36uiypQaJTgz1OMiJQj1vWTu/hh\n\
-9c9pk31oE+0cGwo=\n\
------END CERTIFICATE REQUEST-----";
+char request_str[4096] = {0};
 
 int addExtension(X509 *cert, int nid, char *value)
 {
@@ -90,6 +69,19 @@ int main()
   OpenSSL_add_all_algorithms();
   ERR_load_BIO_strings();
   ERR_load_crypto_strings();
+
+  if (! (fp=fopen("req.pem", "r"))) {
+    BIO_printf(outbio, "Error opening req file\n");
+    exit -1;
+   }
+
+  int l = fread(request_str, 1, sizeof(request_str), fp);
+  if(l <= 0) {
+    BIO_printf(outbio, "Error reading req file\n");
+    exit -1;
+  }
+  request_str[l] = '\0';
+  fclose(fp);
 
   /* ---------------------------------------------------------- *
    * Create the Input/Output BIO's.                             *
@@ -239,18 +231,31 @@ int main()
     int n = sk_X509_EXTENSION_num(exts);
     printf("n ext %d\n",n);
 
+    // string
     X509_EXTENSION *ext = sk_X509_EXTENSION_value(exts, 0);
-//    ASN1_OBJECT *obj = X509_EXTENSION_get_object(ext);
-//    char buf[100] = {0};
-//    OBJ_obj2txt(buf, 100, obj, 1);
-//    printf("%s\n",buf);
+    ASN1_OBJECT *obj = X509_EXTENSION_get_object(ext);
+    char buf[100] = {0};
+    OBJ_obj2txt(buf, 100, obj, 1);
+    printf("%s\n",buf);
 
-    X509_add_ext(cert, ext, -1);
+    ASN1_OCTET_STRING* str = X509_EXTENSION_get_data(ext);
+    const unsigned char *out=ASN1_STRING_get0_data(str);
+    printf("%s\n",out);
 
-//    addExtension(newcert, nid, "1111");
+    // bin data
+    ext = sk_X509_EXTENSION_value(exts, 1);
+    obj = X509_EXTENSION_get_object(ext);
+    OBJ_obj2txt(buf, 100, obj, 1);
+    printf("%s\n",buf);
 
-//  X509_EXTENSION *ext;
-//  X509_add_extensions(newcert, exts);
+    ASN1_INTEGER *data = X509_EXTENSION_get_data(ext);
+    int dl = ASN1_STRING_length(data);
+    unsigned char *dp = ASN1_STRING_data(data);
+    for(int i=0; i < dl; i++)
+	printf("%02x",dp[i]);
+    printf("\n");
+
+//    addExtension(newcert, NID_ext_key_usage, "1111");
 
   /* ----------------------------------------------------------- *
    * Set digest type, sign new certificate with CA's private key *
