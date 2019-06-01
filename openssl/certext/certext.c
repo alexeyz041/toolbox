@@ -11,15 +11,16 @@
 #include <openssl/err.h>
 #include <openssl/pem.h>
 #include <openssl/x509.h>
+#include <openssl/x509v3.h>
 
-int main() {
-
-  const char cert_filestr[] = "./cert-file.pem";
+int main()
+{
+  const char cert_filestr[] = "./cert.pem";
   BIO              *certbio = NULL;
   BIO               *outbio = NULL;
   X509                *cert = NULL;
   X509_CINF       *cert_inf = NULL;
-  STACK_OF(X509_EXTENSION) *ext_list;
+//  STACK_OF(X509_EXTENSION) *ext_list;
   int ret, i;
 
   /* ---------------------------------------------------------- *
@@ -44,33 +45,30 @@ int main() {
     exit(-1);
   }
 
+  printf("---\n");
+
   /* ---------------------------------------------------------- *
    * Extract the certificate's extensions                       *
    * ---------------------------------------------------------- */
-  cert_inf = cert->cert_info;
 
-  ext_list = cert_inf->extensions;
+    int n_ext = X509_get_ext_count(cert);
+    for(int i=0; i < n_ext; i++) {
+        X509_EXTENSION *ext = X509_get_ext(cert, i);
 
-  if(sk_X509_EXTENSION_num(ext_list) <= 0) return 1;
+        ASN1_OBJECT *obj = X509_EXTENSION_get_object(ext);
+	BIO_printf(outbio, "\n");
+	BIO_printf(outbio, "Object %.2d: ", i);
+	i2a_ASN1_OBJECT(outbio, obj);
+	BIO_printf(outbio, "\n");
 
-  /* ---------------------------------------------------------- *
-   * Print the extension value                                  *
-   * ---------------------------------------------------------- */
-  for (i=0; i<sk_X509_EXTENSION_num(ext_list); i++) {
-    ASN1_OBJECT *obj;
-    X509_EXTENSION *ext;
-
-    ext = sk_X509_EXTENSION_value(ext_list, i);
-
-    obj = X509_EXTENSION_get_object(ext);
-    BIO_printf(outbio, "\n");
-    BIO_printf(outbio, "Object %.2d: ", i);
-    i2a_ASN1_OBJECT(outbio, obj);
-    BIO_printf(outbio, "\n");
-
-    X509V3_EXT_print(outbio, ext, NULL, NULL);
-    BIO_printf(outbio, "\n");
-  }
+	if(X509V3_EXT_print(outbio, ext, 0, 0)) {
+    	    BIO_printf(outbio, "\n");
+	} else {
+	    ASN1_OCTET_STRING* str = X509_EXTENSION_get_data(ext);
+	    const unsigned char *out = ASN1_STRING_get0_data(str);
+	    BIO_printf(outbio, "%s\n",out);
+	}
+    }
 
   X509_free(cert);
   BIO_free_all(certbio);
