@@ -29,7 +29,6 @@ int gcm_encrypt(unsigned char *plaintext, int plaintext_len,
     int len;
     int ciphertext_len;
 
-
     /* Create and initialise the context */
     if(!(ctx = EVP_CIPHER_CTX_new()))
         handleErrors();
@@ -148,15 +147,22 @@ int gcm_decrypt(unsigned char *ciphertext, int ciphertext_len,
     }
 }
 
+
 int main()
 {
-unsigned char plaintext[100] = { 1,2,3,4,5 };
+unsigned char plaintext[100] = { 0 };
 unsigned char plaintext2[100] = { 0 };
 unsigned char ciphertext[200] = { 0 };
-unsigned char key[32] = { 1 };
-unsigned char iv[32] = { 1 };
-unsigned char tag[16] = { 2 };
-unsigned char aad[10] = "bla bla";
+unsigned char key[32] = { 0 };
+unsigned char iv[32] = { 0 };
+unsigned char tag[16] = { 0 };
+unsigned char aad[10] = { 0 };
+
+    RAND_bytes(plaintext, sizeof(plaintext));
+    RAND_bytes(key, sizeof(key));
+    RAND_bytes(iv, sizeof(iv));
+    RAND_bytes(tag, sizeof(tag));
+    RAND_bytes(aad, sizeof(aad));
 
     int e = gcm_encrypt(plaintext, 100, aad, 10, key, iv, 32, ciphertext, tag);
     printf("e = %d\n",e);
