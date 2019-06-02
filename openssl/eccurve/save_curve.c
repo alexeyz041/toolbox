@@ -18,6 +18,7 @@ void handleErrors()
     exit(-1);
 }
 
+
 EC_GROUP *get_ec_group_512(void)
 {
     static unsigned char ec_p_512[] = {
@@ -116,7 +117,7 @@ err:
 }
 
 
-int main()
+void test()
 {
 EC_GROUP *curve = get_ec_group_512();
  
@@ -130,6 +131,29 @@ EC_GROUP *curve = get_ec_group_512();
     fclose(f);
 
     EC_GROUP_free(curve);
+}
 
-    return 0;
+
+int main(int arc, char *argv[])
+{ 
+  /* Load the human readable error strings for libcrypto */
+  ERR_load_crypto_strings();
+
+  /* Load all digest and cipher algorithms */
+  OpenSSL_add_all_algorithms();
+
+  test();
+
+  /* Clean up */
+
+  /* Removes all digests and ciphers */
+  EVP_cleanup();
+
+  /* if you omit the next, a small leak may be left when you make use of the BIO (low level API) for e.g. base64 transformations */
+  CRYPTO_cleanup_all_ex_data();
+
+  /* Remove error strings */
+  ERR_free_strings();
+
+  return 0;
 }

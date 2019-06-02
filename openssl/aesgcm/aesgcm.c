@@ -2,12 +2,14 @@
 
 #include <string.h>
 
+#include <openssl/conf.h>
 #include <openssl/rand.h>
 #include <openssl/ecdsa.h>
 #include <openssl/obj_mac.h>
 #include <openssl/err.h>
 #include <openssl/pem.h>
 #include <openssl/evp.h>
+
 
 void handleErrors()
 {
@@ -17,6 +19,7 @@ void handleErrors()
     }
     exit(-1);
 }
+
 
 int gcm_encrypt(unsigned char *plaintext, int plaintext_len,
                 unsigned char *aad, int aad_len,
@@ -148,7 +151,7 @@ int gcm_decrypt(unsigned char *ciphertext, int ciphertext_len,
 }
 
 
-int main()
+void test()
 {
 unsigned char plaintext[100] = { 0 };
 unsigned char plaintext2[100] = { 0 };
@@ -165,16 +168,46 @@ unsigned char aad[10] = { 0 };
     RAND_bytes(aad, sizeof(aad));
 
     int e = gcm_encrypt(plaintext, 100, aad, 10, key, iv, 32, ciphertext, tag);
-    printf("e = %d\n",e);
+    if(e != 100) {
+        printf("e = %d\n",e);
+	return;
+    }
 
     int d = gcm_decrypt(ciphertext, e, aad, 10, tag, key, iv, 32, plaintext2);
-    printf("d = %d\n",d);
+    if(d != 100) {
+        printf("d = %d\n",d);
+	return;
+    }
 
     if(memcmp(plaintext,plaintext2,100) != 0) {
 	printf("mismatch!\n");
+    } else {
+	printf("ok\n");
     }
-
-    return 0;
 }
 
 
+
+int main(int arc, char *argv[])
+{ 
+  /* Load the human readable error strings for libcrypto */
+  ERR_load_crypto_strings();
+
+  /* Load all digest and cipher algorithms */
+  OpenSSL_add_all_algorithms();
+
+  test();
+
+  /* Clean up */
+
+  /* Removes all digests and ciphers */
+  EVP_cleanup();
+
+  /* if you omit the next, a small leak may be left when you make use of the BIO (low level API) for e.g. base64 transformations */
+  CRYPTO_cleanup_all_ex_data();
+
+  /* Remove error strings */
+  ERR_free_strings();
+
+  return 0;
+}
