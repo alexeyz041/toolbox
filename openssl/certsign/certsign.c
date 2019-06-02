@@ -13,6 +13,16 @@
 #include <openssl/pem.h>
 #include <openssl/x509v3.h>
 
+
+void handleErrors()
+{
+    if (ERR_peek_last_error()) {
+    fprintf(stderr, "generated errors:\n");
+        ERR_print_errors_fp(stderr);
+    }
+    exit(-1);
+}
+
 /*********** where is the ca certificate .pem file ****************************/
 #define CACERT          "./clca.pem"
 /*********** where is the ca's private key file *******************************/
@@ -29,7 +39,7 @@ X509_REQ         *certreq = NULL;
 
 char request_str[4096] = {0};
 
-int addExtension(X509 *cert, int nid, char *value)
+int addExtension(X509 *cert, char *name, char *value)
 {
     X509_EXTENSION *ex = NULL;
     X509V3_CTX ctx;
@@ -39,13 +49,19 @@ int addExtension(X509 *cert, int nid, char *value)
 
     // Issuer and subject certs: both the target since it is self signed, no request and no CRL
     X509V3_set_ctx(&ctx, cert, cert, NULL, NULL, 0);
-    ex = X509V3_EXT_conf_nid(NULL, &ctx, nid, value);
+//    ex = X509V3_EXT_conf_nid(NULL, &ctx, nid, value);
+    ex = X509V3_EXT_conf(NULL, &ctx, name, value);
     if (!ex) {
+	printf("X509V3_EXT_conf failed 1\n");
+	handleErrors();
         return 0;
     }
 
     int result = X509_add_ext(cert, ex, -1);
-
+    if(!result) {
+	printf("X509_add_ext failed\n");
+	handleErrors();
+    }
     X509_EXTENSION_free(ex);
 
     return (result == 0) ? 1 : 0;
@@ -225,6 +241,7 @@ int main()
   /* ----------------------------------------------------------- *
    * Add X509V3 extensions                                       *
    * ------------------------------------------------------------*/
+/*
   X509V3_set_ctx(&ctx, cacert, newcert, NULL, NULL, 0);
 
     struct stack_st_X509_EXTENSION *exts = X509_REQ_get_extensions(certreq);
@@ -254,8 +271,9 @@ int main()
     for(int i=0; i < dl; i++)
 	printf("%02x",dp[i]);
     printf("\n");
-
-//    addExtension(newcert, NID_ext_key_usage, "1111");
+*/
+    addExtension(newcert, "1.2.3.4.5.6", "ASN1:UTF8String:1111");
+    addExtension(newcert, "1.2.3.4.5.7", "DER:010203");
 
   /* ----------------------------------------------------------- *
    * Set digest type, sign new certificate with CA's private key *
