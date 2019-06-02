@@ -1,0 +1,35 @@
+#!/bin/bash
+
+set -x
+
+# generate recepient key
+openssl ecparam -genkey -param_enc explicit -out r.pem -name brainpoolP512t1
+
+# extract public key from recepient private key
+openssl ec -in r.pem -pubout -out r-pubk.pem
+
+# generate temp key
+openssl ecparam -genkey -param_enc explicit -out temppriv.pem -name brainpoolP512t1
+
+# create shared secret
+openssl pkeyutl -derive -inkey temppriv.pem -peerkey r-pubk.pem -out sharedsecret
+
+# make hash of shared secret
+openssl dgst -sha256 -out hashedsharedsecret sharedsecret
+cat hashedsharedsecret | cut -f2 -d" " > hss
+rm hashedsharedsecret
+rm sharedsecret
+
+# encrypt data
+openssl enc -aes-256-ofb -iv "00000000000000000000000000000000" -K "$(cat hss)" -in text -out ciphertext
+
+# extract public key
+openssl ec -in temppriv.pem -pubout -out temppubkey.pem
+
+# create mac
+openssl dgst -sha256 -hmac "$(cat hss)" -out mactemp ciphertext
+cat mactemp | cut -f2 -d" " > mac
+
+# cleanup
+rm mactemp
+rm temppriv.pem

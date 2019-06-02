@@ -42,4 +42,13 @@ sign file
 verify signature
  openssl dgst -SHA512 -verify pubk.pem -signature signature.bin test.txt
 
+encrypt
+ openssl enc -aes-256-cbc -iv 0 -K o -in text -out ciphertext
+
+decrypt
+ openssl enc -d -aes-256-cbc -iv 0 -K o -in ciphertext -out text
+
+create shared secret
+ openssl pkeyutl -derive -inkey temppriv.pem -peerkey peer-pubk.pem -out sharedsecret
+
 

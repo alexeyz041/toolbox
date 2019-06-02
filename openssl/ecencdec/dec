@@ -1,0 +1,28 @@
+#!/bin/bash
+
+set -x
+
+# create shared secret
+openssl pkeyutl -derive -inkey r.pem -peerkey temppubkey.pem -out sharedsecret2
+
+# make hash of shared secret
+openssl dgst -sha256 -out hashedsharedsecret2 sharedsecret2
+cat hashedsharedsecret2 | cut -f2 -d" " > hss2
+rm hashedsharedsecret2
+rm sharedsecret2
+
+diff hss hss2
+
+# create mac
+openssl dgst -sha256 -hmac "$(cat hss2)" -out mactemp2 ciphertext
+cat mactemp2 | cut -f2 -d" " > mac2
+rm mactemp2
+
+diff mac mac2
+
+# decrypt
+openssl enc -d -aes-256-ofb -iv "00000000000000000000000000000000" -K "$(cat hss2)" -in ciphertext -out text2
+
+diff text text2
+
+
