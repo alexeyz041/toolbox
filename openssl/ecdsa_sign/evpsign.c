@@ -1,5 +1,5 @@
 // verify signature
-// openssl dgst -sha256 -verify key-pub.pem -signature signature.bin sign.c
+//  openssl dgst -sha256 -verify key-pub.pem -signature signature.bin sign.c
 
 #include <string.h>
 
@@ -9,6 +9,7 @@
 #include <openssl/sha.h>
 #include <openssl/pem.h>
 #include <openssl/evp.h>
+#include <openssl/err.h>
 
 
 EC_KEY *load_key(char *path)
@@ -28,6 +29,7 @@ EC_KEY *key = NULL;
     fclose(fp);
     return key;
 }
+
 
 EC_KEY *load_pubkey(char *path)
 {
@@ -119,7 +121,7 @@ err:
 }
 
 
-int verify(/*char *hash, int hashlen*/ char *path)
+int verify(char *path)
 {
 unsigned char p[1024] = {0};
 const unsigned char *pp = p;
@@ -208,22 +210,48 @@ void digest(char *path)
 }
 
 
-int main(int argc, char *argv[])
+void test(char *path)
 {
 int rc = 0;
-    digest(argv[1]);
+    digest(path);
 
-    rc = sign(argv[1]);
+    rc = sign(path);
     if(!rc) {
 	printf("sign failed\n");
 	exit(-1);
     }
 
-    rc = verify(argv[1]);
+    rc = verify(path);
     if(!rc) {
 	printf("verify failed\n");
 	exit(-1);
     }
+}
 
-    return 0;
+
+int main(int argc, char *argv[])
+{ 
+  /* Load the human readable error strings for libcrypto */
+  ERR_load_crypto_strings();
+
+  /* Load all digest and cipher algorithms */
+  OpenSSL_add_all_algorithms();
+
+  if(argc == 2) {
+    test(argv[1]);
+  } else {
+    printf("Usage: evpsign file\n");
+  }
+  /* Clean up */
+
+  /* Removes all digests and ciphers */
+  EVP_cleanup();
+
+  /* if you omit the next, a small leak may be left when you make use of the BIO (low level API) for e.g. base64 transformations */
+  CRYPTO_cleanup_all_ex_data();
+
+  /* Remove error strings */
+  ERR_free_strings();
+
+  return 0;
 }

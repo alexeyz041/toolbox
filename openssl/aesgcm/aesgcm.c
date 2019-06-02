@@ -188,7 +188,7 @@ unsigned char aad[10] = { 0 };
 
 
 
-int main(int arc, char *argv[])
+int main(int argc, char *argv[])
 { 
   /* Load the human readable error strings for libcrypto */
   ERR_load_crypto_strings();

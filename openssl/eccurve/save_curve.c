@@ -134,7 +134,7 @@ EC_GROUP *curve = get_ec_group_512();
 }
 
 
-int main(int arc, char *argv[])
+int main(int argc, char *argv[])
 { 
   /* Load the human readable error strings for libcrypto */
   ERR_load_crypto_strings();
