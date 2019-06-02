@@ -1,0 +1,45 @@
+list curves
+ openssl ecparam -list_curves
+
+store curve to file
+ openssl ecparam -name brainpoolP512t1 -out brainpoolP512t1.pem [-param_enc explicit]
+
+list curve parameters
+ openssl ecparam -in brainpoolP512t1.pem -text -param_enc explicit -noout
+
+generate key pair
+ openssl ecparam -in brainpoolP512t1.pem -genkey -noout -out brainpoolP512t1-key.pem 
+
+create CA certificate
+ openssl req -new -key ca-key.pem -nodes -out ca.csr -subj "/C=FI/ST=Pm/O=SlowHacking Co"
+ openssl x509 -trustout -signkey ca-key.pem -days 365 -req -in ca.csr -out ca.pem
+
+view CSR
+ openssl req -noout -text -in req.pem
+
+view certificate
+ openssl x509 -noout -text -in ca.pem
+
+verify certificate
+ openssl verify -verbose -CAfile ca.pem clca.pem
+ openssl verify -verbose -CAfile <(cat clca.pem ca.pem) v.pem
+
+extract public key from certificate
+ openssl x509 -pubkey -noout -in cert.pem  > pubk.pem
+
+extract public key from private key(key pair)
+ openssl ec -in key.pem -pubout -out pubk.pem
+
+view key
+ openssl ec -in key.pem -noout -text
+
+view public key
+ openssl ec -in key-pub2.pem -pubin -noout -text
+
+sign file
+ openssl dgst -SHA512 -sign key.pem test.txt > signature.bin
+
+verify signature
+ openssl dgst -SHA512 -verify pubk.pem -signature signature.bin test.txt
+
+
