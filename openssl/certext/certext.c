@@ -64,9 +64,14 @@ int main()
 	if(X509V3_EXT_print(outbio, ext, 0, 0)) {
     	    BIO_printf(outbio, "\n");
 	} else {
-	    ASN1_OCTET_STRING* str = X509_EXTENSION_get_data(ext);
-	    const unsigned char *out = ASN1_STRING_get0_data(str);
-	    BIO_printf(outbio, "%s\n",out);
+	    ASN1_STRING* str = X509_EXTENSION_get_data(ext);
+	    char *p = (char*)ASN1_STRING_get0_data(str);
+	    int len = ASN1_STRING_length(str);
+	    printf("len1 = %d type %d",len,ASN1_STRING_type(str));
+	    for(int i=0; i < len; i++) {
+	       printf("%c %02x ",p[i]&0xff,p[i]&0xff);
+	    }
+	    printf("\n");
 	}
     }
 
