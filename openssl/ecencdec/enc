@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# based on https://superuser.com/questions/1003690/how-can-i-encrypt-a-file-with-an-ec-public-key
+
 set -x
 
 # generate recepient key
