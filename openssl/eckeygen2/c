@@ -1,0 +1,4 @@
+#!/bin/bash
+
+gcc keygen.c -o keygen -lcrypto
+
