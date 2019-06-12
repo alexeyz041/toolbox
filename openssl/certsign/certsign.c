@@ -68,6 +68,35 @@ int addExtension(X509 *cert, char *name, char *value)
 }
 
 
+int addExtension1(X509 *cert, int nid, char *value)
+{
+    X509_EXTENSION *ex = NULL;
+    X509V3_CTX ctx;
+
+    // This sets the 'context' of the extensions. No configuration database
+    X509V3_set_ctx_nodb(&ctx);
+
+    // Issuer and subject certs: both the target since it is self signed, no request and no CRL
+    X509V3_set_ctx(&ctx, cert, cert, NULL, NULL, 0);
+    ex = X509V3_EXT_conf_nid(NULL, &ctx, nid, value);
+//    ex = X509V3_EXT_conf(NULL, &ctx, name, value);
+    if (!ex) {
+	printf("X509V3_EXT_conf failed 1\n");
+	handleErrors();
+        return 0;
+    }
+
+    int result = X509_add_ext(cert, ex, -1);
+    if(!result) {
+	printf("X509_add_ext failed\n");
+	handleErrors();
+    }
+    X509_EXTENSION_free(ex);
+
+    return (result == 0) ? 1 : 0;
+}
+
+
 int main()
 {
   ASN1_INTEGER                 *aserial = NULL;
@@ -272,6 +301,10 @@ int main()
 	printf("%02x",dp[i]);
     printf("\n");
 */
+    addExtension1(newcert,NID_basic_constraints, "CA:FALSE");
+    addExtension1(newcert,NID_key_usage, "nonRepudiation, digitalSignature, keyEncipherment");
+    addExtension1(newcert,NID_netscape_comment, "Comment");
+
     addExtension(newcert, "1.2.3.4.5.6", "ASN1:UTF8String:1111");
     addExtension(newcert, "1.2.3.4.5.7", "DER:010203");
 
