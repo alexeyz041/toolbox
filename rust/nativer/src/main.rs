@@ -1,6 +1,9 @@
 
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
+use std::ffi::CStr;
+use std::os::raw::c_char;
+
 fn main()
 {
     println!("Hello, world!");
@@ -14,4 +17,12 @@ fn main()
     println!("Hello, world! {},{}",ctx.x,ctx.y);
 
     println!("len = {} buf = {:?}", ctx.len, buf);
+}
+
+
+#[no_mangle]
+pub extern "C" fn print(value: *const c_char)
+{
+    let value = unsafe { CStr::from_ptr(value).to_string_lossy().into_owned() };
+    println!("rust: {}",value);
 }
