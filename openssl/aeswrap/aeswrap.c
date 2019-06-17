@@ -135,7 +135,45 @@ int EVP_aes_unwrap_key(EVP_CIPHER_CTX *ctx, const unsigned char *iv,
 		return 0;
 		}
 	return inlen;
-	}
+}
+
+
+int EVP_aes_wrap(const unsigned char *kek, const unsigned char *iv,
+			 unsigned char *eout,
+			 const unsigned char *key, int keylen)
+{
+	int r, ret = 0;
+	EVP_CIPHER_CTX *wctx = EVP_CIPHER_CTX_new();
+	if (!EVP_CipherInit_ex(wctx, EVP_aes_256_ecb(), NULL, kek, NULL, 1))
+		goto err;
+	r = EVP_aes_wrap_key(wctx, iv, eout, key, keylen);
+	if (r <= 0)
+		goto err;
+	ret = 1;
+err:
+	EVP_CIPHER_CTX_free(wctx);
+	return ret;
+}
+
+
+int EVP_aes_unwrap(const unsigned char *kek, const unsigned char *iv,
+			 unsigned char *out,
+			 const unsigned char *key, int keylen)
+{
+	int r, ret = 0;
+	EVP_CIPHER_CTX *wctx = EVP_CIPHER_CTX_new();
+
+	if (!EVP_CipherInit_ex(wctx, EVP_aes_256_ecb(), NULL, kek, NULL, 0))
+		goto err;
+	r = EVP_aes_unwrap_key(wctx, iv, out, key, r);
+
+	ret = 1;
+err:
+	EVP_CIPHER_CTX_free(wctx);
+	return ret;
+}
+
+
 
 #ifdef AES_WRAP_TEST
 
@@ -262,6 +300,14 @@ static const unsigned char e6[] = {
 	fprintf(stderr, "Key test result %d\n", ret);
 	ret = EVP_aes_wrap_unwrap_test(kek, 256, NULL, e6, key, 32);
 	fprintf(stderr, "Key test result %d\n", ret);
+
+	unsigned char out[40] = {0};
+	ret = EVP_aes_wrap(kek, NULL, out, key, 32);
+	fprintf(stderr, "Key test result %d %d\n", ret, memcmp(e6, out, 32));
+
+	unsigned char out2[32] = {0};
+	ret = EVP_aes_unwrap(kek, NULL, out2, out, 32);
+	fprintf(stderr, "Key test result %d %d\n", ret, memcmp(key, out2, 32));
 }
 	
 	
