@@ -1,0 +1,3 @@
+crls/
+crlcertverify
+*.pem
