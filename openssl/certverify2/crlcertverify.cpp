@@ -1,3 +1,5 @@
+// add CRL to crls folder like this
+// ln -s crl.pem $(openssl crl -hash -noout -in crl.pem).r0
 
 #include "crlcertverify.h"
 
