@@ -6,6 +6,8 @@
 #include <openssl/err.h>
 #include <openssl/pem.h>
 #include <openssl/x509.h>
+#include <openssl/asn1t.h>
+
 
 EC_KEY *load_key(char *path)
 {
@@ -25,6 +27,52 @@ EC_KEY *key = NULL;
     return key;
 }
 
+
+struct x_pubkey_st {
+    ASN1_INTEGER *num_keys;
+    ASN1_BIT_STRING *public_key;
+};
+
+typedef struct x_pubkey_st X_PUBKEY;
+
+ASN1_SEQUENCE(X_PUBKEY) = {
+        ASN1_SIMPLE(X_PUBKEY, num_keys, ASN1_INTEGER),
+        ASN1_SIMPLE(X_PUBKEY, public_key, ASN1_BIT_STRING)
+} ASN1_SEQUENCE_END(X_PUBKEY)
+
+IMPLEMENT_ASN1_FUNCTIONS(X_PUBKEY)
+
+
+int i2d_xpubkey(unsigned char **pp)
+{
+int ret;
+X_PUBKEY *xpk;
+    
+    if ((xpk = X_PUBKEY_new()) == NULL)
+        return -1;
+
+    ASN1_INTEGER_set(xpk->num_keys, 2);
+    unsigned char bits[] = { 22, 33 };
+    ASN1_BIT_STRING_set(xpk->public_key, bits, 13);
+
+    ret = i2d_X_PUBKEY(xpk, pp);
+        
+    return ret;
+}
+
+X_PUBKEY *d2i_xpubkey(const unsigned char **pp, long length)
+{
+    const unsigned char *q;
+    q = *pp;
+    X_PUBKEY *xpk = d2i_X_PUBKEY(NULL, &q, length);
+    if (!xpk)
+        return NULL;
+
+    return xpk;
+}
+
+
+//==============================================================================
 
 int gen_X509Req()
 {
@@ -80,32 +128,21 @@ const char      *szPath = "req.pem";
 	goto free_all;
     }
 
-    // Add custom extensions
-    // text
-    struct stack_st_X509_EXTENSION *exts = NULL;
-    X509_EXTENSION *ex = NULL;
-    
-    exts = sk_X509_EXTENSION_new_null();
+    // Add custom extension
+
+    int nid = OBJ_create("1.2.3.4.5.6.7", "Custom Text", "Custom Text");
+
+    unsigned char *p = NULL;
+    long len = i2d_xpubkey(&p);
+    printf("r = %ld\n", len);
+
     ASN1_OCTET_STRING *os = ASN1_OCTET_STRING_new();
-    int nid = OBJ_create("1.2.3.4.5.6", "Custom Text", "Custom Text");
-    ASN1_OCTET_STRING_set(os, "ABC Corp", 8);
-    ex = X509_EXTENSION_create_by_NID(NULL, nid, 0, os);
+    ASN1_OCTET_STRING_set(os, p, len);
+
+    X509_EXTENSION *ex = X509_EXTENSION_create_by_NID(NULL, nid, 0, os);
+
+    struct stack_st_X509_EXTENSION *exts = sk_X509_EXTENSION_new_null();
     sk_X509_EXTENSION_push(exts, ex);
-
-    // binary
-    unsigned char data[20] = {1,2,3,4,5,6,7,8,9};
-
-    // build big number from our bytes
-    BIGNUM* bn = BN_new();
-    BN_bin2bn(data, sizeof(data), bn);
-    // build the ASN1_INTEGER from our BIGNUM
-    ASN1_INTEGER* asnInt = ASN1_INTEGER_new();
-    BN_to_ASN1_INTEGER(bn, asnInt);
-
-    nid = OBJ_create("1.2.3.4.5.7", "Bin data", "Bin data");
-    ex = X509_EXTENSION_create_by_NID( NULL, nid, 0, asnInt);
-    sk_X509_EXTENSION_push(exts, ex);
-
     X509_REQ_add_extensions(x509_req, exts);
 
     //----
@@ -135,8 +172,8 @@ free_all:
     BIO_free_all(out);
     EVP_PKEY_free(pKey);
 
-    ASN1_INTEGER_free(asnInt);
-    BN_free(bn);
+//    ASN1_INTEGER_free(asnInt);
+//    BN_free(bn);
 
     return (ret == 1); 
 }
@@ -145,7 +182,16 @@ free_all:
 
 int main()
 {
-int rc = gen_X509Req();
+/*
+    unsigned char *p = NULL;
+    long len = i2d_xpubkey(&p);
+    printf("r = %ld\n", len);
+
+    X_PUBKEY *xpk = d2i_xpubkey(&p,len);
+    unsigned char *bits = xpk->public_key->data;
+    printf("n = %ld %d %d %d\n", ASN1_INTEGER_get(xpk->num_keys), bits[0], bits[1], xpk->public_key->length);
+*/
+    int rc = gen_X509Req();
     printf("r = %d\n",rc);
     return 0;
 }
