@@ -341,8 +341,27 @@ int main()
     addExtension1(newcert,NID_key_usage, "nonRepudiation, digitalSignature, keyEncipherment");
     addExtension1(newcert,NID_netscape_comment, "Comment");
 
-    addExtension(newcert, "1.2.3.4.5.6", "ASN1:UTF8String:1111");
-    addExtension(newcert, "1.2.3.4.5.7", "DER:010203");
+//    addExtension(newcert, "1.2.3.4.5.6", "ASN1:UTF8String:1111");
+//    addExtension(newcert, "1.2.3.4.5.7", "DER:010203");
+
+
+    int nid = OBJ_create("1.2.3.4.5.6.7", "Custom Text", "Custom Text");
+
+    unsigned char *p = NULL;
+    long len = i2d_xpubkey(&p);
+    printf("r = %ld\n", len);
+
+    ASN1_OCTET_STRING *os = ASN1_OCTET_STRING_new();
+    ASN1_OCTET_STRING_set(os, p, len);
+
+    X509_EXTENSION *ex = X509_EXTENSION_create_by_NID(NULL, nid, 0, os);
+    
+    int result = X509_add_ext(newcert, ex, -1);
+    if(!result) {
+	printf("X509_add_ext failed\n");
+	handleErrors();
+    }
+
 
   /* ----------------------------------------------------------- *
    * Set digest type, sign new certificate with CA's private key *

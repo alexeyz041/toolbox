@@ -12,6 +12,53 @@
 #include <openssl/pem.h>
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
+#include <openssl/asn1t.h>
+
+
+struct x_pubkey_st {
+    ASN1_INTEGER *num_keys;
+    ASN1_BIT_STRING *public_key;
+};
+
+typedef struct x_pubkey_st X_PUBKEY;
+
+ASN1_SEQUENCE(X_PUBKEY) = {
+        ASN1_SIMPLE(X_PUBKEY, num_keys, ASN1_INTEGER),
+        ASN1_SIMPLE(X_PUBKEY, public_key, ASN1_BIT_STRING)
+} ASN1_SEQUENCE_END(X_PUBKEY)
+
+IMPLEMENT_ASN1_FUNCTIONS(X_PUBKEY)
+
+
+int i2d_xpubkey(unsigned char **pp)
+{
+int ret;
+X_PUBKEY *xpk;
+    
+    if ((xpk = X_PUBKEY_new()) == NULL)
+        return -1;
+
+    ASN1_INTEGER_set(xpk->num_keys, 2);
+    unsigned char bits[] = { 22, 33 };
+    ASN1_BIT_STRING_set(xpk->public_key, bits, 13);
+
+    ret = i2d_X_PUBKEY(xpk, pp);
+        
+    return ret;
+}
+
+X_PUBKEY *d2i_xpubkey(const unsigned char **pp, long length)
+{
+    const unsigned char *q;
+    q = *pp;
+    X_PUBKEY *xpk = d2i_X_PUBKEY(NULL, &q, length);
+    if (!xpk)
+        return NULL;
+
+    return xpk;
+}
+
+
 
 int main()
 {
@@ -60,6 +107,14 @@ int main()
 	BIO_printf(outbio, "Object %.2d: ", i);
 	i2a_ASN1_OBJECT(outbio, obj);
 	BIO_printf(outbio, "\n");
+
+	if(i == 3) {
+	    ASN1_STRING* d = X509_EXTENSION_get_data(ext);
+	    X_PUBKEY *xpk = d2i_xpubkey(&d->data,d->length);
+	    unsigned char *bits = xpk->public_key->data;
+	    printf("n = %ld %d %d %d\n", ASN1_INTEGER_get(xpk->num_keys), bits[0], bits[1], xpk->public_key->length);
+	    continue;
+	}
 
 	if(X509V3_EXT_print(outbio, ext, 0, 0)) {
     	    BIO_printf(outbio, "\n");
