@@ -8,6 +8,66 @@
 #include <openssl/x509.h>
 #include <openssl/asn1t.h>
 
+struct x_pub1_st {
+    ASN1_INTEGER *ver;
+    ASN1_BIT_STRING *public_key;
+};
+
+typedef struct x_pub1_st X_PUB1;
+
+ASN1_SEQUENCE(X_PUB1) = {
+        ASN1_SIMPLE(X_PUB1, ver, ASN1_INTEGER),
+        ASN1_SIMPLE(X_PUB1, public_key, ASN1_BIT_STRING)
+} ASN1_SEQUENCE_END(X_PUB1)
+
+//IMPLEMENT_ASN1_FUNCTIONS(X_PUB1)
+
+struct x_pubkey_st {
+    ASN1_INTEGER *num_keys;
+    X_PUB1 *pub1;
+};
+
+typedef struct x_pubkey_st X_PUBKEY;
+
+ASN1_SEQUENCE(X_PUBKEY) = {
+        ASN1_SIMPLE(X_PUBKEY, num_keys, ASN1_INTEGER),
+        ASN1_SIMPLE(X_PUBKEY, pub1, X_PUB1)
+} ASN1_SEQUENCE_END(X_PUBKEY)
+
+IMPLEMENT_ASN1_FUNCTIONS(X_PUBKEY)
+
+
+int i2d_xpubkey(unsigned char **pp)
+{
+int ret;
+X_PUBKEY *xpk;
+    
+    if ((xpk = X_PUBKEY_new()) == NULL)
+        return -1;
+
+    ASN1_INTEGER_set(xpk->num_keys, 2);
+    ASN1_INTEGER_set(xpk->pub1->ver, 1);
+
+    unsigned char bits[] = { 22, 33 };
+    ASN1_BIT_STRING_set(xpk->pub1->public_key, bits, 13);
+
+    ret = i2d_X_PUBKEY(xpk, pp);
+        
+    return ret;
+}
+
+X_PUBKEY *d2i_xpubkey(const unsigned char **pp, long length)
+{
+    const unsigned char *q;
+    q = *pp;
+    X_PUBKEY *xpk = d2i_X_PUBKEY(NULL, &q, length);
+    if (!xpk)
+        return NULL;
+    return xpk;
+}
+
+
+//==============================================================================
 
 EC_KEY *load_key(char *path)
 {
@@ -28,51 +88,6 @@ EC_KEY *key = NULL;
 }
 
 
-struct x_pubkey_st {
-    ASN1_INTEGER *num_keys;
-    ASN1_BIT_STRING *public_key;
-};
-
-typedef struct x_pubkey_st X_PUBKEY;
-
-ASN1_SEQUENCE(X_PUBKEY) = {
-        ASN1_SIMPLE(X_PUBKEY, num_keys, ASN1_INTEGER),
-        ASN1_SIMPLE(X_PUBKEY, public_key, ASN1_BIT_STRING)
-} ASN1_SEQUENCE_END(X_PUBKEY)
-
-IMPLEMENT_ASN1_FUNCTIONS(X_PUBKEY)
-
-
-int i2d_xpubkey(unsigned char **pp)
-{
-int ret;
-X_PUBKEY *xpk;
-    
-    if ((xpk = X_PUBKEY_new()) == NULL)
-        return -1;
-
-    ASN1_INTEGER_set(xpk->num_keys, 2);
-    unsigned char bits[] = { 22, 33 };
-    ASN1_BIT_STRING_set(xpk->public_key, bits, 13);
-
-    ret = i2d_X_PUBKEY(xpk, pp);
-        
-    return ret;
-}
-
-X_PUBKEY *d2i_xpubkey(const unsigned char **pp, long length)
-{
-    const unsigned char *q;
-    q = *pp;
-    X_PUBKEY *xpk = d2i_X_PUBKEY(NULL, &q, length);
-    if (!xpk)
-        return NULL;
-
-    return xpk;
-}
-
-
-//==============================================================================
 
 int gen_X509Req()
 {
@@ -182,15 +197,17 @@ free_all:
 
 int main()
 {
-/*
     unsigned char *p = NULL;
     long len = i2d_xpubkey(&p);
     printf("r = %ld\n", len);
 
-    X_PUBKEY *xpk = d2i_xpubkey(&p,len);
-    unsigned char *bits = xpk->public_key->data;
-    printf("n = %ld %d %d %d\n", ASN1_INTEGER_get(xpk->num_keys), bits[0], bits[1], xpk->public_key->length);
-*/
+    X_PUBKEY *xpk = d2i_xpubkey((const unsigned char **)&p,len);
+    printf("n = %ld\n", ASN1_INTEGER_get(xpk->num_keys));
+    printf("v = %ld\n", ASN1_INTEGER_get(xpk->pub1->ver));
+    if(xpk->pub1 && xpk->pub1->public_key && xpk->pub1->public_key->data) {
+        unsigned char *bits = xpk->pub1->public_key->data;
+	printf("pk %d %d len = %d", bits[0], bits[1], xpk->pub1->public_key->length);
+    }
     int rc = gen_X509Req();
     printf("r = %d\n",rc);
     return 0;
