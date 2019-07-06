@@ -9,6 +9,7 @@
 #include <openssl/asn1t.h>
 
 struct x_pub1_st {
+    ASN1_OBJECT *obj;
     ASN1_INTEGER *ver;
     ASN1_BIT_STRING *public_key;
 };
@@ -16,6 +17,7 @@ struct x_pub1_st {
 typedef struct x_pub1_st X_PUB1;
 
 ASN1_SEQUENCE(X_PUB1) = {
+        ASN1_SIMPLE(X_PUB1, obj, ASN1_OBJECT),
         ASN1_SIMPLE(X_PUB1, ver, ASN1_INTEGER),
         ASN1_SIMPLE(X_PUB1, public_key, ASN1_BIT_STRING)
 } ASN1_SEQUENCE_END(X_PUB1)
@@ -47,6 +49,9 @@ X_PUBKEY *xpk;
 
     ASN1_INTEGER_set(xpk->num_keys, 2);
     ASN1_INTEGER_set(xpk->pub1->ver, 1);
+    xpk->pub1->obj = OBJ_txt2obj("1.2.3.4.5.6.7.8.9",0);
+
+//printf("oid %d\n", xpk->pub1->obj == NULL);
 
     unsigned char bits[] = { 22, 33 };
     ASN1_BIT_STRING_set(xpk->pub1->public_key, bits, 13);
@@ -206,8 +211,12 @@ int main()
     printf("v = %ld\n", ASN1_INTEGER_get(xpk->pub1->ver));
     if(xpk->pub1 && xpk->pub1->public_key && xpk->pub1->public_key->data) {
         unsigned char *bits = xpk->pub1->public_key->data;
-	printf("pk %d %d len = %d", bits[0], bits[1], xpk->pub1->public_key->length);
+	printf("pk %d %d len = %d\n", bits[0], bits[1], xpk->pub1->public_key->length);
     }
+    char buf[32] = {0};
+    OBJ_obj2txt(buf,sizeof(buf), xpk->pub1->obj, 0);
+    printf("oid = %s %d\n", buf, xpk->pub1->obj == NULL);
+
     int rc = gen_X509Req();
     printf("r = %d\n",rc);
     return 0;
