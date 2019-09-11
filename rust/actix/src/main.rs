@@ -2,6 +2,10 @@
 use actix_web::{ error, middleware, web, App, Error, HttpRequest, HttpResponse, HttpServer };
 use bytes::BytesMut;
 use futures::{Future, Stream};
+
+#[macro_use] extern crate log;
+extern crate env_logger;
+
 use std::fs::File;
 use std::io::Read;
 use std::io::Write;
@@ -63,6 +67,7 @@ fn save_file(fnm: &str, sig: &[u8]) -> Result<(), Error>
 
 fn cmd(c: &str) -> Result<(), Error>
 {
+    debug!("cmd {}", c);
     Command::new(c)
         .spawn()
         .expect("command failed to start");
@@ -71,7 +76,7 @@ fn cmd(c: &str) -> Result<(), Error>
 
 
 fn main() -> std::io::Result<()> {
-    std::env::set_var("RUST_LOG", "actix_web=info,actix_server=info");
+    std::env::set_var("RUST_LOG", "actix_web=info,actix_server=info,example=debug");
     env_logger::init();
 
     HttpServer::new(|| {

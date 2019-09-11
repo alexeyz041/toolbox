@@ -9,5 +9,6 @@ actix-web = "1.0.0"
 
 bytes = "0.4"
 futures = "0.1"
-env_logger = "*"
+env_logger = "0.6.2"
+log = "0.4"
 
