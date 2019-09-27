@@ -1,7 +1,25 @@
-openssl genrsa -out client.key 2048
-openssl req -new -key client.key -out client.csr -subj "/C=FI/ST=Pm/O=Hacking Unlimited Co/CN=Betty client"
-openssl ca -in client.csr -out client.pem -config ./ca.conf
+#!/bin/bash
 
-openssl genrsa -out server.key 2048
-openssl req -new -key server.key -out server.csr -subj "/C=FI/ST=Pm/O=Hacking Unlimited Co/CN=Betty server"
-openssl ca -in server.csr -out server.pem -config ./ca.conf
+set -xe
+
+if [ ! -f index.txt ]; then
+    touch index.txt
+fi
+
+if [ ! -f index.txt.attr ]; then
+    touch index.txt.attr
+fi
+
+if [ ! -f serial ]; then
+    echo "0001" > serial
+fi
+
+openssl genrsa -out client.key 4096
+openssl req -new -key client.key -out client.csr -subj "/C=FI/ST=Pm/O=Hacking Unlimited Co/CN=Hacky client"
+openssl ca -batch -in client.csr -out client.pem -config ./ca.conf
+rm client.csr
+
+openssl genrsa -out server.key 4096
+openssl req -new -key server.key -out server.csr -subj "/C=FI/ST=Pm/O=Hacking Unlimited Co/CN=Hacky server"
+openssl ca -batch -in server.csr -out server.pem -config ./ca.conf
+rm server.csr

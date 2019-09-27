@@ -1,3 +1,8 @@
-openssl req -new -newkey rsa:2048 -nodes -out ca.csr -keyout ca.key -subj "/C=FI/ST=Pm/O=Hacking Unlimited Co"
+#!/bin/bash
+
+set -xe
+
+openssl req -new -newkey rsa:4096 -nodes -out ca.csr -keyout ca.key -subj "/C=FI/ST=Pm/O=Hacking Unlimited Co"
 openssl x509 -trustout -signkey ca.key -days 365 -req -in ca.csr -out ca.pem
+rm ca.csr
 
