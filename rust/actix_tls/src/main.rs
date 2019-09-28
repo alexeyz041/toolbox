@@ -1,6 +1,8 @@
 
-use actix_web::{ middleware, web, App, HttpRequest, HttpResponse, HttpServer };
-
+use actix_web::{ middleware, web, App, HttpRequest, HttpResponse, HttpServer, error, Error };
+use futures::Future;
+use futures::stream::Stream;
+use bytes::BytesMut;
 use rustls::internal::pemfile::{certs, rsa_private_keys};
 use rustls::{NoClientAuth, ServerConfig};
 use std::fs::File;
@@ -16,6 +18,31 @@ fn get(req: HttpRequest, path: web::Path<(String,)>) -> HttpResponse {
     HttpResponse::Ok()
         .content_type("text/plain")
         .body(format!("Hello {}!", path.0))
+}
+
+
+const MAX_SIZE: usize = 262_144; // max payload size is 256k
+
+fn post(payload: web::Payload) -> impl Future<Item = HttpResponse, Error = Error> {
+    // payload is a stream of Bytes objects
+    payload
+        .from_err()
+        .fold(BytesMut::new(), move |mut body, chunk| {
+            // limit max size of in-memory payload
+            if (body.len() + chunk.len()) > MAX_SIZE {
+                Err(error::ErrorBadRequest("overflow"))
+            } else {
+                body.extend_from_slice(&chunk);
+                Ok(body)
+            }
+        })
+        .and_then(|body| {
+    	    // body is loaded, now we can process request
+    	    info!("body = {}", String::from_utf8(body.to_vec()).unwrap());
+    	    Ok(HttpResponse::Ok()
+        	.content_type("text/plain")
+		.body("Hello post!"))
+        })
 }
 
 
@@ -36,6 +63,7 @@ fn main() -> std::io::Result<()> {
             // enable logger
             .wrap(middleware::Logger::default())
             .service(web::resource("/get/{name}").route(web::get().to(get)))
+	    .service(web::resource("/post").route(web::post().to_async(post)))
     })
     .bind_rustls("127.0.0.1:8443", config)?
     .run()
