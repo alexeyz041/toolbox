@@ -2,7 +2,7 @@
 
 set -xe
 
-
+if [ "$1" == "win" ] ; then
     export CC=/usr/bin/x86_64-w64-mingw32-gcc
     export AR=/usr/bin/x86_64-w64-mingw32-ar
     export NM=/usr/bin/x86_64-w64-mingw32-nm
@@ -38,7 +38,7 @@ if [ ! -d ../openssl ]; then
 fi
 
 if [ "$1" == "win" ] ; then
-    export LIBS="-lcrypt32" 
+    export LIBS="-lcrypt32"
 fi
 
 if [ ! -d ../libssh2 ]; then
