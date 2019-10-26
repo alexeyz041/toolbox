@@ -554,7 +554,7 @@ int scp_read(LIBSSH2_SESSION *session, char *scppath, char *loclfile)
 
 //==============================================================================
 
-int shell(LIBSSH2_SESSION *session, char *cmd)
+int shell(LIBSSH2_SESSION *session, char *cmd, char *fno)
 {
     LIBSSH2_CHANNEL *channel;
     
@@ -589,16 +589,29 @@ int shell(LIBSSH2_SESSION *session, char *cmd)
 
     libssh2_channel_write(channel, str, strlen(str));
 
+    FILE *out = NULL;
+    if(fno) {
+	out = fopen(fno,"w");
+	if(!out) {
+	    printf("can't create file %s\n", fno);
+	    goto skip_shell;
+	}
+    }
     for( ; ; ) {
         char buf[1024] = {0};
         int rc = libssh2_channel_read(channel, buf, 1024);
         if(rc == 0) break;
 
         printf("%s\n", buf);
+	if(out) {
+	    fprintf(out, "%s\n", buf);
+	}
         if(buf[strlen(buf)-2] == '#') break;
     }
 
 skip_shell:
+    if(out) fclose(out);
+
     if(channel) {
         libssh2_channel_free(channel);
         channel = NULL;
@@ -612,16 +625,16 @@ void usage()
 {
     printf("Usage:\n");
     printf("\n");
-    printf(" ssh2 host -c command      execute command\n");
-    printf(" ssh2 host -u file url     upload file\n");
-    printf(" ssh2 host -d url file     download file\n");
+    printf(" ssh2 host -c command [-o file]   execute command, store output to file\n");
+    printf(" ssh2 host -u file url            upload file\n");
+    printf(" ssh2 host -d url file            download file\n");
     printf("\n");
     printf("Optional paramters:\n");
-    printf("  -p pin                   use pin for token (default 123123)\n");
-    printf("  -l label                 use key with label (default 00)\n");
-    printf("  -n username              login with username (default consul)\n");
-    printf("  -h fingerprint           check server key fingerprint (default do not check)\n");
-    printf("  -v verbose               print debug information (default off)\n");
+    printf("  -p pin                          use pin for token (default: 123123)\n");
+    printf("  -l label                        use key with label (default: 00)\n");
+    printf("  -n username                     login with username (default: root)\n");
+    printf("  -h fingerprint                  check server key fingerprint (default: do not check)\n");
+    printf("  -v verbose                      print debug information (default: off)\n");
     printf("\n");
     exit(1);
 }
@@ -640,6 +653,7 @@ char *username = NULL;
 char *pin = NULL;
 char *label = NULL;
 char *fp = NULL;
+char *out = NULL;
 int verbose = 0;
 
 #ifdef WIN32
@@ -672,6 +686,10 @@ int verbose = 0;
         } else if(strcmp("-h", argv[i]) == 0) {
         	if(i+1 >= argc) usage();
         	fp = argv[i+1];
+        	i += 2;
+        } else if(strcmp("-o", argv[i]) == 0) {
+        	if(i+1 >= argc) usage();
+        	out = argv[i+1];
         	i += 2;
         } else if(strcmp("-v", argv[i]) == 0) {
         	verbose = 1;
@@ -772,7 +790,7 @@ int verbose = 0;
     for(i=2; i < argc; ) {
 		if(strcmp("-c", argv[i]) == 0) {
 			if(i+1 >= argc) usage();
-			rc = shell(session, argv[i+1]);
+			rc = shell(session, argv[i+1], out);
 		    if(rc) {
 		    	printf("operation failed, rc=%d", rc);
 		    	break;
@@ -803,6 +821,8 @@ int verbose = 0;
 		} else if(strcmp("-v",argv[i]) == 0) {
 			i++;
 		} else if(strcmp("-h",argv[i]) == 0) {
+			i+=2;
+	        } else if(strcmp("-o", argv[i]) == 0) {
 			i+=2;
 		} else {
 			printf("Unrecognised option %s\n", argv[i]);

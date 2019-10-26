@@ -1,2 +1,5 @@
+rsa/
+ecdsa/
+*.pem
 ssh2
 ssh2.exe
