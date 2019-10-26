@@ -3,5 +3,5 @@ gcc -fsanitize=address -g -DLIBSSH2DEBUG -DHAVE_CONFIG_H -I ../libssh2/include -
     ssh2.c -o ssh2 \
     -L../libssh2/src/.libs -lssh2 \
     -L../openssl/lib -lcrypto \
-    -L../zlib -lz
+    -L../zlib -lz -ldl -lpthread
 

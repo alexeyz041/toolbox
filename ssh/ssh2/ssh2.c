@@ -38,6 +38,10 @@
 #include <arpa/inet.h>
 #endif
 
+#ifdef WIN32
+typedef DWORD u_int32_t;
+#endif
+
 #include <stdlib.h>
 #include <sys/types.h>
 #include <fcntl.h>

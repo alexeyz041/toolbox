@@ -1,0 +1,7 @@
+/usr/bin/x86_64-w64-mingw32-gcc -g -DLIBSSH2DEBUG -DHAVE_CONFIG_H -DWIN32 \
+    -I ../libssh2/include -I ../libssh2/src -I ../openssl/include -I ../zlib \
+    ssh2.c -o ssh2.exe \
+    -L../libssh2/src/.libs -lssh2 \
+    -L../openssl/lib -lcrypto \
+    -L../zlib -lz -lws2_32 -lcrypt32
+

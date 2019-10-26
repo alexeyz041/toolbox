@@ -1,25 +1,22 @@
 #!/bin/bash
 
-if [ ! -d ../libssh2 ]; then
-    cd ..
-    git clone https://github.com/libssh2/libssh2.git
-    cd libssh2
-    ./buildconf
-    ./configure --enable-debug --enable-shared=no --disable-examples-build
-    make
-    cd ../ssh2
+set -xe
+
+
+    export CC=/usr/bin/x86_64-w64-mingw32-gcc
+    export AR=/usr/bin/x86_64-w64-mingw32-ar
+    export NM=/usr/bin/x86_64-w64-mingw32-nm
+    export LD=/usr/bin/x86_64-w64-mingw32-ld
+    export WINDRES=/usr/bin/x86_64-w64-mingw32-windres
+    OPENSSL_TARGET=mingw64
+    LIBSSH2_TARGET=--host=mingw64
+else
+    OPENSSL_TARGET=linux-generic64
+    EXTRA_LIBS="-ldl -lpthread"
 fi
 
-if [ ! -d ../openssl ]; then
-    cd ..
-    git clone git://git.openssl.org/openssl.git openssl-1.1.1c
-    cd openssl-1.1.1c
-    git checkout OpenSSL_1_1_1c
-    ./Configure linux-generic64 --prefix=$(pwd)/../openssl --openssldir=$(pwd)/../openssl --no-shared
-    make
-    make install
-    cd ../ssh2
-fi
+export CFLAGS="-I $(pwd)/../zlib"
+export LDFLAGS="-L$(pwd)/../zlib $EXTRA_LIBS"
 
 if [ ! -d ../zlib ]; then
     cd ..
@@ -29,3 +26,29 @@ if [ ! -d ../zlib ]; then
     make
     cd ../ssh2
 fi
+
+if [ ! -d ../openssl ]; then
+    cd ..
+    git clone --single-branch --branch OpenSSL_1_1_1c git://git.openssl.org/openssl.git openssl-1.1.1c
+    cd openssl-1.1.1c
+    ./Configure $OPENSSL_TARGET no-shared no-tests --prefix=$(pwd)/../openssl --openssldir=$(pwd)/../openssl
+    make
+    make install
+    cd ../ssh2
+fi
+
+if [ "$1" == "win" ] ; then
+    export LIBS="-lcrypt32" 
+fi
+
+if [ ! -d ../libssh2 ]; then
+    cd ..
+    git clone https://github.com/libssh2/libssh2.git
+    cd libssh2
+    ./buildconf
+    ./configure $LIBSSH2_TARGET --enable-debug --enable-shared=no --disable-examples-build \
+            --with-crypto=openssl --with-libz-prefix=$(pwd)/../zlib --with-libssl-prefix=$(pwd)/../openssl
+    make
+    cd ../ssh2
+fi
+
