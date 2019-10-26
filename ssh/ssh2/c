@@ -1,2 +1,2 @@
-gcc -fsanitize=address -g -I ../libssh2/include -I ../libssh2/src ssh2.c -o ssh2 -L../libssh2/src/.libs -lssh2 -lcrypto -lz
+gcc -fsanitize=address -g -DLIBSSH2DEBUG -DHAVE_CONFIG_H -I ../libssh2/include -I ../libssh2/src ssh2.c -o ssh2 -L../libssh2/src/.libs -lssh2 -lcrypto -lz
 
