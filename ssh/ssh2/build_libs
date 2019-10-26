@@ -1,0 +1,31 @@
+#!/bin/bash
+
+if [ ! -d ../libssh2 ]; then
+    cd ..
+    git clone https://github.com/libssh2/libssh2.git
+    cd libssh2
+    ./buildconf
+    ./configure --enable-debug --enable-shared=no --disable-examples-build
+    make
+    cd ../ssh2
+fi
+
+if [ ! -d ../openssl ]; then
+    cd ..
+    git clone git://git.openssl.org/openssl.git openssl-1.1.1c
+    cd openssl-1.1.1c
+    git checkout OpenSSL_1_1_1c
+    ./Configure linux-generic64 --prefix=$(pwd)/../openssl --openssldir=$(pwd)/../openssl --no-shared
+    make
+    make install
+    cd ../ssh2
+fi
+
+if [ ! -d ../zlib ]; then
+    cd ..
+    git clone https://github.com/madler/zlib.git
+    cd zlib
+    ./configure --static
+    make
+    cd ../ssh2
+fi
