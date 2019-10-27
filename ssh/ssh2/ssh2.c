@@ -637,7 +637,9 @@ void usage()
     printf("  -p pin                          use pin for token (default: 123123)\n");
     printf("  -l label                        use key with label (default: 00)\n");
     printf("  -n username                     login with username (default: root)\n");
-    printf("  -h fingerprint                  check server key fingerprint (default: do not check)\n");
+    printf("  -h fingerprint                  check server key sha256 fingerprint (default: do not check)\n");
+    printf("  -w password                     use password (default: use key)\n");
+    printf("  -k file                         use key from file (default: key.pem)\n");
     printf("  -v verbose                      print debug information (default: off)\n");
     printf("\n");
     exit(1);
@@ -658,7 +660,10 @@ char *pin = NULL;
 char *label = NULL;
 char *fp = NULL;
 char *out = NULL;
+char *passwd = NULL;
+char *keyfile = NULL;
 int verbose = 0;
+int token = 1;
 
 #ifdef WIN32
     WSADATA wsadata;
@@ -675,27 +680,37 @@ int verbose = 0;
 
     hostaddr = inet_addr(argv[1]);
     for(i=2; i < argc; ) {
-        if(strcmp("-p", argv[i]) == 0) {
+        if(strcmp("-p", argv[i]) == 0) {			// token pin
         	if(i+1 >= argc) usage();
         	pin = argv[i+1];
         	i += 2;
-        } else if(strcmp("-l", argv[i]) == 0) {
+        } else if(strcmp("-l", argv[i]) == 0) {		// key label
         	if(i+1 >= argc) usage();
         	label = argv[i+1];
         	i += 2;
-        } else if(strcmp("-n", argv[i]) == 0) {
+        } else if(strcmp("-n", argv[i]) == 0) {		// user name
         	if(i+1 >= argc) usage();
         	username = argv[i+1];
         	i += 2;
-        } else if(strcmp("-h", argv[i]) == 0) {
+        } else if(strcmp("-h", argv[i]) == 0) {		// host fingerprint
         	if(i+1 >= argc) usage();
         	fp = argv[i+1];
         	i += 2;
-        } else if(strcmp("-o", argv[i]) == 0) {
+        } else if(strcmp("-o", argv[i]) == 0) {		// output file
         	if(i+1 >= argc) usage();
         	out = argv[i+1];
         	i += 2;
-        } else if(strcmp("-v", argv[i]) == 0) {
+        } else if(strcmp("-w", argv[i]) == 0) {		// password
+        	if(i+1 >= argc) usage();
+        	passwd = argv[i+1];
+        	token = 0;
+        	i += 2;
+        } else if(strcmp("-k", argv[i]) == 0) {		// key file
+        	if(i+1 >= argc) usage();
+        	keyfile = argv[i+1];
+        	token = 0;
+        	i += 2;
+        } else if(strcmp("-v", argv[i]) == 0) {		// verbose
         	verbose = 1;
         	i++;
         } else {
@@ -704,16 +719,22 @@ int verbose = 0;
     }
    
     ENGINE *e = NULL;
-    EVP_PKEY *key = load_key(&e, label ? label : "00", pin ? pin : "123123");
-    if(!key) {
-        printf("can't load private key from token\n");
-        key = load_key_file("key.pem");
-        if(!key) {
-        	printf("can't load private key from file\n");
-            return 1;
-        }
+    EVP_PKEY *key = NULL;
+    if(token) {
+    	key = load_key(&e, label ? label : "00", pin ? pin : "123123");
+    	if(!key) {
+    		printf("can't load private key from token\n");
+    		return 1;
+    	}
+    } else {
+    	keyfile = keyfile ? keyfile : "key.pem";
+    	key = load_key_file(keyfile);
+    	if(!key) {
+    		printf("can't load private key from %s file\n", keyfile);
+    		return 1;
+    	}
     }
-
+    
     rc = libssh2_init(0);
     if(rc != 0) {
         printf("libssh2 initialization failed (%d)\n", rc);
@@ -723,13 +744,13 @@ int verbose = 0;
     /* Ultra basic "connect to port 22 on localhost".  Your code is
      * responsible for creating the socket establishing the connection
      */
+    int port = 22;
     sock = socket(AF_INET, SOCK_STREAM, 0);
-
     sin.sin_family = AF_INET;
-    sin.sin_port = htons(22);
+    sin.sin_port = htons(port);
     sin.sin_addr.s_addr = hostaddr;
     if(connect(sock, (struct sockaddr*)(&sin), sizeof(struct sockaddr_in)) != 0) {
-        printf("failed to connect!\n");
+        printf("failed to connect to %s:%d\n", argv[1], port);
         return -1;
     }
 
@@ -752,16 +773,16 @@ int verbose = 0;
      * hard coded, may go to a file, may present it to the user, that's your
      * call
      */
-    fingerprint = libssh2_hostkey_hash(session, LIBSSH2_HOSTKEY_HASH_SHA1);
+    fingerprint = libssh2_hostkey_hash(session, LIBSSH2_HOSTKEY_HASH_SHA256);
     printf("Server key fingerprint: ");
-    for(i = 0; i < 20; i++) {
-        printf("%02X%s", (unsigned char)fingerprint[i], (i == 20-1) ? "" : ":");
+    for(i = 0; i < 40; i++) {
+        printf("%02X%s", (unsigned char)fingerprint[i], (i == 40-1) ? "" : ":");
     }
     printf("\n");
     
     if(fp) {
     	int ok = 1;
-    	for(i = 0; i < 20; i++) {
+    	for(i = 0; i < 40; i++) {
     		char tmp[3] = {0};
             snprintf(tmp, sizeof(tmp), "%02X", (unsigned char)fingerprint[i]);
             if(tmp[0] != fp[i*3] || tmp[1] != fp[i*3+1]) {
@@ -781,15 +802,31 @@ int verbose = 0;
     userauthlist = libssh2_userauth_list(session, username, strlen(username));
     printf("Authentication methods: %s\n", userauthlist);
 
-    rc = userauth_publickey_token(session, username, strlen(username), key);
-    if(rc) {
-        printf("Authentication by public key failed rc=%d\n",rc);
-        goto shutdown;
+    if(passwd) {
+    	if(!strstr(userauthlist, "password")) {
+    		printf("No password authentication available\n");
+    		goto shutdown;
+    	}
+        if(libssh2_userauth_password(session, username, passwd)) {
+            fprintf(stderr, "Authentication by password failed\n");
+            goto shutdown;
+        } else {
+            fprintf(stderr, "Authentication by password succeeded.\n");
+        }
+    } else {
+    	if(!strstr(userauthlist, "publickey")) {
+    		printf("No public key authentication available\n");
+    		goto shutdown;
+    	}
+    	rc = userauth_publickey_token(session, username, strlen(username), key);
+    	if(rc) {
+    		printf("Authentication by public key failed rc=%d\n",rc);
+    		goto shutdown;
+    	} else {
+    		printf("Authentication by public key succeeded.\n");
+    	}
     }
-    else {
-        printf("Authentication by public key succeeded.\n");
-    }
-
+    
     rc = 0;
     for(i=2; i < argc; ) {
 		if(strcmp("-c", argv[i]) == 0) {
@@ -822,11 +859,15 @@ int verbose = 0;
 			i+=2;
 		} else if(strcmp("-l",argv[i]) == 0) {
 			i+=2;
+		} else if(strcmp("-w",argv[i]) == 0) {
+			i+=2;
 		} else if(strcmp("-v",argv[i]) == 0) {
 			i++;
 		} else if(strcmp("-h",argv[i]) == 0) {
 			i+=2;
-	        } else if(strcmp("-o", argv[i]) == 0) {
+	    } else if(strcmp("-o", argv[i]) == 0) {
+			i+=2;
+	    } else if(strcmp("-k", argv[i]) == 0) {
 			i+=2;
 		} else {
 			printf("Unrecognised option %s\n", argv[i]);
