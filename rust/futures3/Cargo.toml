@@ -1,0 +1,7 @@
+[package]
+name = "futures3-example"
+edition = "2018"
+version = "0.3.0"
+
+[dependencies]
+futures = { version = "0.3.1", features = ["thread-pool"], default-features = false }

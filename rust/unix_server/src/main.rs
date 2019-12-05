@@ -13,12 +13,15 @@ fn main()
     for stream in listener.incoming() {
         thread::spawn(|| {
 	    let mut stream = stream.unwrap();
+            println!("got new connection");
 	    loop {
         	let mut buf = [0u8; 32];
 		let rcvd = stream.read(&mut buf).unwrap();
         	println!("Received {} bytes", rcvd);
 		if rcvd > 0 {
 		    stream.write(&buf[..rcvd]).unwrap();
+		} else {
+		    break;
 		}
 	    }
         });
