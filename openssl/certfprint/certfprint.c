@@ -66,6 +66,18 @@ int main(int argc,char *argv[])
     BIO_printf(outbio,"%02X%c", fprint[j], (j+1 == fprint_size) ?'\n':':');
   }
 
+  int mdnid=0;
+  int pknid=0;
+  int secbits=0;
+  uint32_t flags=0;
+  if(!X509_get_signature_info(cert, &mdnid, &pknid, &secbits,  &flags)) {
+      BIO_printf(outbio,"get signature info failed");
+  }
+  BIO_printf(outbio,"mdnid %d %d\n", mdnid, NID_sha256);
+  BIO_printf(outbio,"pknid %d %d\n", pknid, NID_X9_62_id_ecPublicKey);
+  BIO_printf(outbio,"secbits %d\n", secbits);
+  BIO_printf(outbio,"flags %d valid %d tls %d\n", flags, flags & X509_SIG_INFO_VALID, flags & X509_SIG_INFO_TLS);
+
   X509_free(cert);
   BIO_free_all(certbio);
   BIO_free_all(outbio);
