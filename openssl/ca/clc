@@ -15,15 +15,17 @@ if [ ! -f serial ]; then
 fi
 
 #openssl genrsa -out client.key 4096
-openssl ecparam -out client.key -name secp521r1 -genkey
+openssl ecparam -out client.key -name secp384r1 -genkey
 openssl req -new -key client.key -out client.csr -subj "/C=FI/ST=Pm/O=Hacking Unlimited Co/CN=Hacky client"
 openssl ca -batch -in client.csr -out client.pem -config ./ca.conf
 rm client.csr
 openssl x509 -in client.pem -text -noout
+openssl pkcs8 -topk8 -inform PEM -outform PEM -in client.key -out client1.key -nocrypt
 
 #openssl genrsa -out server.key 4096
-openssl ecparam -out server.key -name secp521r1 -genkey
+openssl ecparam -out server.key -name secp384r1 -genkey
 openssl req -new -key server.key -out server.csr -subj "/C=FI/ST=Pm/O=Hacking Unlimited Co/CN=Hacky server"
 openssl ca -batch -in server.csr -out server.pem -config ./ca.conf
 rm server.csr
 openssl x509 -in server.pem -text -noout
+openssl pkcs8 -topk8 -inform PEM -outform PEM -in server.key -out server1.key -nocrypt

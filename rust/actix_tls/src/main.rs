@@ -1,23 +1,25 @@
-
-use actix_web::{ middleware, web, App, HttpRequest, HttpResponse, HttpServer, error, Error };
-use futures::Future;
-use futures::stream::Stream;
-use bytes::BytesMut;
-use rustls::internal::pemfile::{certs, rsa_private_keys};
-use rustls::{NoClientAuth, ServerConfig};
 use std::fs::File;
 use std::io::BufReader;
+use bytes::BytesMut;
+
+use futures::Future;
+use futures::stream::Stream;
+use futures::future::ok;
+
+use actix_web::{ middleware, web, App, HttpRequest, HttpResponse, HttpServer, error, Error };
+use rustls::internal::pemfile::{certs, rsa_private_keys};
+use rustls::{NoClientAuth, ServerConfig};
 
 #[macro_use] extern crate log;
 extern crate env_logger;
 
 
-fn get(req: HttpRequest, path: web::Path<(String,)>) -> HttpResponse {
+fn get(req: HttpRequest, path: web::Path<(String,)>) -> impl Future<Item = HttpResponse, Error = Error> {
     info!("{:?}", req);
 
-    HttpResponse::Ok()
+    ok(HttpResponse::Ok()
         .content_type("text/plain")
-        .body(format!("Hello {}!", path.0))
+        .body(format!("Hello {}!", path.0)))
 }
 
 
@@ -62,7 +64,7 @@ fn main() -> std::io::Result<()> {
         App::new()
             // enable logger
             .wrap(middleware::Logger::default())
-            .service(web::resource("/get/{name}").route(web::get().to(get)))
+            .service(web::resource("/get/{name}").route(web::get().to_async(get)))
 	    .service(web::resource("/post").route(web::post().to_async(post)))
     })
     .bind_rustls("127.0.0.1:8443", config)?
