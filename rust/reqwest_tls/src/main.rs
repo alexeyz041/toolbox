@@ -4,7 +4,8 @@ extern crate env_logger;
 use std::fs::File;
 use std::io::Read;
 
-fn main() -> std::io::Result<()> {
+#[tokio::main]
+async fn main() {
     std::env::set_var("RUST_LOG", "request=debug");
     env_logger::init();
 
@@ -18,16 +19,14 @@ fn main() -> std::io::Result<()> {
 
     let client = reqwest::Client::builder()
 		    .use_rustls_tls()
-		    .add_root_certificate(cert)
+		    .add_root_certificate(cert) // .danger_accept_invalid_certs(true)
 		    .build().unwrap();
 
-    let body = client.get("https://localhost:8443/get/123").send().unwrap()
-	.text().unwrap();
+    let body = client.get("https://localhost:8443/get/123").send().await.unwrap()
+	.text().await.unwrap();
     info!("get body = {:?}", body);
 
-    let body = client.post("https://localhost:8443/post").body("Hello from reqwest").send().unwrap()
-	.text().unwrap();
+    let body = client.post("https://localhost:8443/post").body("Hello from reqwest").send().await.unwrap()
+	.text().await.unwrap();
     info!("post body = {:?}", body);
-
-    Ok(())
 }

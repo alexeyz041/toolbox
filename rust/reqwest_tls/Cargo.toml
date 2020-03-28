@@ -7,7 +7,8 @@ edition = "2018"
 [dependencies]
 env_logger = "0.6.2"
 log = "0.4"
-reqwest = { version = "0.9.2", features = ["rustls-tls"] }
-#rustls = "0.15"
+reqwest = { version = "0.10.4", features = ["rustls-tls"] }
+#async-std = { version = "1.2.0", features = ["attributes"] }
+tokio = { version = "0.2", features = ["macros"] }
 
 

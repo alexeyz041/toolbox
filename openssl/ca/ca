@@ -4,8 +4,8 @@ set -xe
 
 #openssl genrsa -out ca.key 4096
 openssl ecparam -out ca.key -name secp384r1 -genkey
-openssl req -new -key ca.key -nodes -out ca.csr -subj "/C=FI/ST=Pm/O=Hacking Unlimited Co"
-openssl x509 -trustout -signkey ca.key -days 365 -req -in ca.csr -out ca.pem -sha512
+openssl req -new -key ca.key -nodes -out ca.csr -subj "/C=FI/ST=Pm/O=Hacking Unlimited Co/CN=Root CA"
+openssl x509 -trustout -signkey ca.key -days 365 -req -in ca.csr -out ca.pem
 rm ca.csr
 openssl x509 -in ca.pem -text -noout
 
