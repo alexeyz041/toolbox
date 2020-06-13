@@ -7,3 +7,5 @@ authors = ["lz"]
 pnet = "0.25.0"
 rand = "0.6"
 lazy_static = "1.2.0"
+termion = "1.5.5"
+dns-lookup = "1.0.3"
