@@ -59,6 +59,9 @@ typedef DWORD u_int32_t;
 #include "userauth.h"
 #include "session.h"
 
+#include "client.h"
+#include "server.h"
+
 
 int error_cb(const char *str, size_t len, void *u)
 {
@@ -625,6 +628,144 @@ skip_shell:
 }
 
 
+//==============================================================================
+
+int shell_client(char *cmd)
+{
+char str[1024] = {0};
+char buf[1024] = {0};
+int rc;
+CLIENT_SESSION *s;
+
+    snprintf(str, sizeof(str), "%s\n", cmd);
+
+    s = client_open("127.0.0.1", 2222);
+    if(!s) {
+        printf("can't open client session\n");
+        return -2;
+    }
+
+//get initial prompt
+    if(client_send(s, "\n", 1) != 1) {
+        printf("client send failed\n");
+        goto skip_shell;
+    }
+
+    for( ; ; ) {
+        rc = client_read(s, buf, sizeof(buf));
+        if(rc <= 0) goto skip_shell;
+
+        buf[rc] = '\0';
+        if(buf[strlen(buf)-2] == '$') break;
+    }
+    printf("got prompt: %s\n", buf);
+
+    printf("cmd = [%s]", str);
+    if(client_send(s, str, strlen(str)) != strlen(str)) {
+        printf("client send failed\n");
+        goto skip_shell;
+    }
+
+    for( ; ; ) {
+        rc = client_read(s, buf, sizeof(buf));
+        if(rc <= 0) break;
+
+        buf[rc] = '\0';
+        if(buf[strlen(buf)-2] == '$') break;
+    }
+    printf("got prompt: %s\n", buf);
+
+    if(rc < 0) {
+        printf("client read failed\n");
+    }
+
+skip_shell:
+    if(s) {
+        client_close(s);
+        s = NULL;
+    }
+
+    return 0;
+}
+
+//==============================================================================
+
+int s1 = -1;
+
+void wcb(void *ctx, void *buf, int buflen, int s)
+{
+LIBSSH2_CHANNEL *channel = (LIBSSH2_CHANNEL *)ctx;
+    printf("write channel %d %d\n", buflen, s);
+    libssh2_channel_write(channel, buf, buflen);
+    s1 = s;
+}
+
+
+int shell_server(LIBSSH2_SESSION *session)
+{
+LIBSSH2_CHANNEL *channel;
+char buf[1024] = {0};
+int rc;
+
+    channel = libssh2_channel_open_session(session);
+    if(!channel) {
+        printf("Unable to open a session\n");
+        return -1;
+    }
+
+    if(libssh2_channel_request_pty(channel, "vanilla")) {
+        printf("Failed requesting pty\n");
+        goto skip_shell;
+    }
+
+    if(libssh2_channel_shell(channel)) {
+        printf("Unable to request shell on allocated pty\n");
+        goto skip_shell;
+    }
+
+    start_server(2222, wcb, channel);
+
+    for(;;) {
+        rc = libssh2_channel_read(channel, buf, sizeof(buf));
+        if(rc <= 0) break;
+
+        server_send(s1, buf, rc);
+    }
+    if(rc < 0) {
+        printf("channel read failed %d\n", rc);
+    }
+
+skip_shell:
+
+    if(channel) {
+        libssh2_channel_free(channel);
+        channel = NULL;
+    }
+
+    return 0;
+}
+
+void start_server_process(int argc, char *argv[])
+{
+char cmd[256] = {0};
+
+    for(int i=0; i < argc; i++) {
+        char arg[64] = {0};
+        if(strcmp(argv[i], "-z") == 0) {
+            snprintf(arg, sizeof(arg), "-c ");
+        } else {
+            snprintf(arg, sizeof(arg), "%s ", argv[i]);
+        }
+        strcat(cmd, arg);
+    }
+    strcat(cmd, "&");
+printf("cmd: %s\n", cmd);
+    system(cmd);
+}
+
+
+//==============================================================================
+
 void usage()
 {
     printf("Usage:\n");
@@ -646,6 +787,9 @@ void usage()
 }
 
 //==============================================================================
+
+int forked = 0;
+
 
 int main(int argc, char *argv[])
 {
@@ -713,6 +857,28 @@ int token = 1;
         } else if(strcmp("-v", argv[i]) == 0) {		// verbose
         	verbose = 1;
         	i++;
+//        } else if(strcmp("-c", argv[i]) == 0) {		// server
+//                i++;
+        } else if(strcmp("-c", argv[i]) == 0) {		// client
+            rc = shell_client(argv[i+1]);
+            printf("exit rc=%d\n", rc);
+            if(rc == -2) {
+                if(fork() == 0) {
+printf("in new process");
+                    forked = 1;
+                } else {
+printf("in old process");
+                    for(int i=0; i < 10; i++) {
+                        sleep(1);
+                        rc = shell_client(argv[i+1]);
+                        if(rc != -2) break;
+                    }
+                    exit(rc);
+                }
+            } else {
+                exit(rc);
+            } 
+            i++;   
         } else {
         	i++;
         }
@@ -829,14 +995,17 @@ int token = 1;
     
     rc = 0;
     for(i=2; i < argc; ) {
-		if(strcmp("-c", argv[i]) == 0) {
-			if(i+1 >= argc) usage();
-			rc = shell(session, argv[i+1], out);
-		    if(rc) {
-		    	printf("operation failed, rc=%d", rc);
-		    	break;
-		    }
-			i += 2;
+		if(strcmp("-c", argv[i]) == 0 && forked) {
+//		    if(i+1 >= argc) usage();
+
+		    rc = shell_server(session);
+                    exit(rc);
+
+//		    if(rc) {
+//		    	printf("operation failed, rc=%d", rc);
+//		    	break;
+//		    }
+//		    i += 2;
 		} else if(strcmp("-u",argv[i]) == 0) {
 			if(i+1 >= argc) usage();
 			rc = scp_write(session, argv[i], argv[i+1]);
