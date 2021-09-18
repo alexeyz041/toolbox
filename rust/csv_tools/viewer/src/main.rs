@@ -40,9 +40,9 @@ fn convert_u(c: u16) -> f64 {
 
 fn load(fnm: &str, n: usize, u: bool) -> (Vec<Data<f64>>,f64,f64,f64)
 {
-	println!("Loading {}",fnm);
-	let mut data = Vec::new();
-	let f = File::open(fnm).unwrap();
+    println!("Loading {}",fnm);
+    let mut data = Vec::new();
+    let f = File::open(fnm).unwrap();
     let file = BufReader::new(&f);
     for line in file.lines() {
     	if n != 0 && data.len() >= n {
@@ -88,8 +88,8 @@ fn draw_axis(cr: &Context, nx: i32, ny: i32)
 	
 	let stepy = 0.5 / (ny as f64);
 	for y in 1..2*ny {
-		cr.move_to(0.1+0.01, (y as f64)*stepy);
-		cr.line_to(0.1-0.01, (y as f64)*stepy);
+            cr.move_to(0.1+0.01, (y as f64)*stepy);
+	    cr.line_to(0.1-0.01, (y as f64)*stepy);
 	}
 	
 	// arrows
@@ -98,33 +98,32 @@ fn draw_axis(cr: &Context, nx: i32, ny: i32)
 
 	cr.move_to(1.0, 0.5); 	cr.line_to(1.-0.02, 0.5-0.01);
 	cr.move_to(1.0, 0.5); 	cr.line_to(1.-0.02, 0.5+0.01);
-	cr.stroke();
-	
+	cr.stroke().expect("stroke failed");
 }
 
 
 fn draw_grid(cr: &Context, nx: i32, ny: i32)
 {
-	cr.set_dash(&[0.005,0.01], 0.);
+    cr.set_dash(&[0.005,0.01], 0.);
     cr.set_line_cap(LineCap::Round);
     cr.set_line_join(LineJoin::Bevel);
 	
-	let stepx = 0.9 / (nx as f64);
-	for x in 1..nx {
-		cr.move_to(0.1+(x as f64)*stepx, 0.01);
-		cr.line_to(0.1+(x as f64)*stepx, 0.99);
-	}
+    let stepx = 0.9 / (nx as f64);
+    for x in 1..nx {
+	cr.move_to(0.1+(x as f64)*stepx, 0.01);
+	cr.line_to(0.1+(x as f64)*stepx, 0.99);
+    }
 	
-	let stepy = 1.0 / (ny as f64);
-	for y in 1..ny {
-		cr.move_to(0.1+0.02, 0.5+(y as f64)*stepy/2.);
-		cr.line_to(1.0-0.01, 0.5+(y as f64)*stepy/2.);
-		cr.move_to(0.1+0.02, 0.5-(y as f64)*stepy/2.);
-		cr.line_to(1.0-0.01, 0.5-(y as f64)*stepy/2.);
-	}
+    let stepy = 1.0 / (ny as f64);
+    for y in 1..ny {
+	cr.move_to(0.1+0.02, 0.5+(y as f64)*stepy/2.);
+	cr.line_to(1.0-0.01, 0.5+(y as f64)*stepy/2.);
+	cr.move_to(0.1+0.02, 0.5-(y as f64)*stepy/2.);
+	cr.line_to(1.0-0.01, 0.5-(y as f64)*stepy/2.);
+    }
 
-	cr.stroke();
-	cr.set_dash(&[1.0], 0.);
+    cr.stroke().expect("stroke failed (2)");
+    cr.set_dash(&[1.0], 0.);
 }
 
 
@@ -163,51 +162,51 @@ fn draw_metrics(cr: &Context, nx: i32, ny: i32,sx: f64,sy: f64, u:bool)
 
 fn main()
 {   
-	let mut series = Vec::new();
-	let mut n = 0;
-	let mut i = 1;
-	let mut u = false;
-	let mut fnm = String::new();
-	while env::args().len() > i {
-	    fnm = env::args().skip(i).next().expect("Missing input file");
-	    if fnm == "-l" {
-    		n = env::args().skip(i+1).next().expect("Missing length").parse::<usize>().unwrap();
-		i += 2;
-		continue;
-	    }
-	    if fnm == "-u" {
-		u = true;
-		i += 1;
-		continue;
-	    } 
-	    break;	    
+    let mut series = Vec::new();
+    let mut n = 0;
+    let mut i = 1;
+    let mut u = false;
+    let mut fnm = String::new();
+    while env::args().len() > i {
+        fnm = env::args().skip(i).next().expect("Missing input file");
+        if fnm == "-l" {
+            n = env::args().skip(i+1).next().expect("Missing length").parse::<usize>().unwrap();
+	    i += 2;
+	    continue;
 	}
+	if fnm == "-u" {
+	    u = true;
+	    i += 1;
+	    continue;
+	} 
+	break;	    
+    }
 
- 	let (data, mut maxt, mut minc, mut maxc) = load(&fnm, n, u);
- 	series.push(data);
+    let (data, mut maxt, mut minc, mut maxc) = load(&fnm, n, u);
+    series.push(data);
+    i += 1;
+
+    while env::args().len() > i {
+	let fnm2 = env::args().skip(i).next().expect("Missing input file");
+	let (data2, maxt2, minc2, maxc2) = load(&fnm2, n, u);
+	if minc2 < minc {
+		minc = minc2;
+	}
+	if maxc2 > maxc {
+		maxc = maxc2;
+	}
+	if maxt2 > maxt {
+		maxt = maxt2;
+	}
+	series.push(data2);
 	i += 1;
-
-	while env::args().len() > i {
-		let fnm2 = env::args().skip(i).next().expect("Missing input file");
- 		let (data2, maxt2, minc2, maxc2) = load(&fnm2, n, u);
- 		if minc2 < minc {
- 			minc = minc2;
- 		}
- 		if maxc2 > maxc {
- 			maxc = maxc2;
- 		}
- 		if maxt2 > maxt {
- 			maxt = maxt2;
- 		}
- 		series.push(data2);
- 		i += 1;
-	}
+    }
 
 
-	let w = 800;
-	let h = 800;
-	let surface = ImageSurface::create(Format::ARgb32, w, h).expect("Can't create surface");
-    let cr = Context::new(&surface);
+    let w = 800;
+    let h = 800;
+    let surface = ImageSurface::create(Format::ARgb32, w, h).expect("Can't create surface");
+    let cr = Context::new(&surface).expect("Can't create context");
     
     cr.scale(w.into(), h.into());
 
@@ -258,12 +257,12 @@ fn main()
 	    cr.stroke();
     }
     
-	let ofn = fnm+&".png";
+    let ofn = fnm+&".png";
     let mut file = File::create(&ofn).expect("Couldn't create output file");
     match surface.write_to_png(&mut file) {
-        Ok(_) => println!("{} created",&ofn),
-        Err(_) => println!("Error creating {}",&ofn),
-	}
+        Ok(_) => println!("{} created", &ofn),
+        Err(_) => println!("Error creating {}", &ofn),
+    }
 }
 
     
