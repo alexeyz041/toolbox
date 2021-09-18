@@ -5,7 +5,6 @@ use std::fs::File;
 use std::env;
 
 extern crate ordered_float;
-
 use ordered_float::*;
 
 extern crate cairo;
@@ -127,7 +126,7 @@ fn draw_grid(cr: &Context, nx: i32, ny: i32)
 }
 
 
-fn draw_metrics(cr: &Context, nx: i32, ny: i32,sx: f64,sy: f64, u:bool)
+fn draw_metrics(cr: &Context, nx: i32, ny: i32,sx: f64,sy: f64, u:bool) -> Result<(), cairo::Error>
 {
 	cr.set_font_size(0.025);
 
@@ -135,28 +134,28 @@ fn draw_metrics(cr: &Context, nx: i32, ny: i32,sx: f64,sy: f64, u:bool)
 	for x in 1..nx {
 		cr.move_to(0.1+(x as f64)*stepx, 0.5+0.03);
 		let val = sx * (x as f64);
-		cr.show_text(&format!("{}",val));
+		cr.show_text(&format!("{}",val))?;
 	}
 	
 	let stepy = 1.0 / (ny as f64);
 	for y in 1..ny {
 		cr.move_to(0.03, 0.5-(y as f64)*stepy/2.);
 		let val = sy * (y as f64);
-		cr.show_text(&format!("{}",val));
+		cr.show_text(&format!("{}",val))?;
 
 		cr.move_to(0.03, 0.5+(y as f64)*stepy/2.);
 		let val = - sy * (y as f64);
-		cr.show_text(&format!("{}",val));
+		cr.show_text(&format!("{}",val))?;
 	}
 	
 	cr.move_to(0.03, 0.03);
 	if u {
-	    cr.show_text("mV");
+	    cr.show_text("mV")?;
 	} else {
-	    cr.show_text("mA");
+	    cr.show_text("mA")?;
 	}
 	cr.move_to(1.0-0.03, 0.5+0.03);
-	cr.show_text("uS");
+	cr.show_text("uS")
 }
 
 
@@ -212,49 +211,49 @@ fn main()
 
     cr.set_line_width(0.001);
     cr.set_source_rgb(1.0, 1.0, 1.0);
-	cr.rectangle(0.0, 0.0, 1.0, 1.0);
-	cr.fill();
+    cr.rectangle(0.0, 0.0, 1.0, 1.0);
+    cr.fill().unwrap();
   	
-  	let mut sx = 10.;
- 	let mut nx = 1 + ((maxt/sx).floor() as i32);  	
-	while nx > 14 {
-		sx *= 2.;
-		nx = 1 + ((maxt/sx).floor() as i32);
-	}
+    let mut sx = 10.;
+    let mut nx = 1 + ((maxt/sx).floor() as i32);  	
+    while nx > 14 {
+	sx *= 2.;
+	nx = 1 + ((maxt/sx).floor() as i32);
+    }
 	
-  	let mut sy = 10.;
-  	let mut maxy = maxc;
-  	if maxy < f64::abs(minc) {
-  		maxy = f64::abs(minc);
-  	}
-  	let mut ny = 1 + ((maxy/sy).floor() as i32);
-	while ny > 14 {
-		sy *= 2.;
-		ny = 1 + ((maxy/sy).floor() as i32);
-	}
+    let mut sy = 10.;
+    let mut maxy = maxc;
+    if maxy < f64::abs(minc) {
+  	maxy = f64::abs(minc);
+    }
+    let mut ny = 1 + ((maxy/sy).floor() as i32);
+    while ny > 14 {
+	sy *= 2.;
+	ny = 1 + ((maxy/sy).floor() as i32);
+    }
 
-  	draw_axis(&cr,nx,ny);
-  	draw_grid(&cr,nx,ny);
-  	draw_metrics(&cr,nx,ny,sx,sy,u);
+    draw_axis(&cr,nx,ny);
+    draw_grid(&cr,nx,ny);
+    draw_metrics(&cr,nx,ny,sx,sy,u).expect("draw metrics failed");
   	
-  	let kx = 0.9 / ((nx as f64) * sx);
-  	let ky = 1.0 / ((2.*ny as f64) * sy); 
+    let kx = 0.9 / ((nx as f64) * sx);
+    let ky = 1.0 / ((2.*ny as f64) * sy); 
 
-	let mut count = 0;
-	for d in series {
-		if count == 0 {
-	    	cr.set_source_rgb(1.0, 0.0, 0.0);
-	    } else if count == 1 {
-	    	cr.set_source_rgb(0.0, 1.0, 0.0);
-	    } else {
-	    	cr.set_source_rgb(0.0, 0.0, 1.0);
-	    }
-		for i in 0..d.len()-1 {
-  			cr.move_to(0.1+kx*d[i].time,   0.5-ky*d[i].val);
-  			cr.line_to(0.1+kx*d[i+1].time, 0.5-ky*d[i+1].val);
-  		}
-  		count += 1;
-	    cr.stroke();
+    let mut count = 0;
+    for d in series {
+        if count == 0 {
+            cr.set_source_rgb(1.0, 0.0, 0.0);
+        } else if count == 1 {
+            cr.set_source_rgb(0.0, 1.0, 0.0);
+        } else {
+            cr.set_source_rgb(0.0, 0.0, 1.0);
+	}
+	for i in 0..d.len()-1 {
+  	    cr.move_to(0.1+kx*d[i].time,   0.5-ky*d[i].val);
+  	    cr.line_to(0.1+kx*d[i+1].time, 0.5-ky*d[i+1].val);
+  	}
+	count += 1;
+	cr.stroke().expect("stroke failed");
     }
     
     let ofn = fnm+&".png";
@@ -264,5 +263,3 @@ fn main()
         Err(_) => println!("Error creating {}", &ofn),
     }
 }
-
-    

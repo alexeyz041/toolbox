@@ -65,79 +65,79 @@ fn load(fnm: &str, n: usize, u: bool) -> Vec<Data<f64>>
 
 fn draw_axis(cr: &Context, nx: i32, ny: i32)
 {
-	cr.set_source_rgb(0.0, 0.0, 0.0);
-	cr.move_to(0.0, 0.9);	//x
-	cr.line_to(1.0, 0.9);
+    cr.set_source_rgb(0.0, 0.0, 0.0);
+    cr.move_to(0.0, 0.9);	//x
+    cr.line_to(1.0, 0.9);
 
-	cr.move_to(0.1, 0.0);	//y
-	cr.line_to(0.1, 1.0);
+    cr.move_to(0.1, 0.0);	//y
+    cr.line_to(0.1, 1.0);
 	
-	let stepx = 0.9 / (nx as f64);
-	for x in 0..nx {
-		cr.move_to(0.1+(x as f64)*stepx, 0.9-0.01);
-		cr.line_to(0.1+(x as f64)*stepx, 0.9+0.01);
-	}
+    let stepx = 0.9 / (nx as f64);
+    for x in 0..nx {
+	cr.move_to(0.1+(x as f64)*stepx, 0.9-0.01);
+	cr.line_to(0.1+(x as f64)*stepx, 0.9+0.01);
+    }
 	
-	let stepy = 0.9 / (ny as f64);
-	for y in 1..ny {
-		cr.move_to(0.1+0.01, 0.9-(y as f64)*stepy);
-		cr.line_to(0.1-0.01, 0.9-(y as f64)*stepy);
-	}
+    let stepy = 0.9 / (ny as f64);
+    for y in 1..ny {
+	cr.move_to(0.1+0.01, 0.9-(y as f64)*stepy);
+	cr.line_to(0.1-0.01, 0.9-(y as f64)*stepy);
+    }
 	
-	// arrows
-	cr.move_to(0.1, 0.0); 	cr.line_to(0.1+0.01, 0.02);
-	cr.move_to(0.1, 0.0); 	cr.line_to(0.1-0.01, 0.02);
+    // arrows
+    cr.move_to(0.1, 0.0); 	cr.line_to(0.1+0.01, 0.02);
+    cr.move_to(0.1, 0.0); 	cr.line_to(0.1-0.01, 0.02);
 
-	cr.move_to(1.0, 0.9); 	cr.line_to(1.-0.02, 0.9-0.01);
-	cr.move_to(1.0, 0.9); 	cr.line_to(1.-0.02, 0.9+0.01);
-	cr.stroke();
-	
+    cr.move_to(1.0, 0.9); 	cr.line_to(1.-0.02, 0.9-0.01);
+    cr.move_to(1.0, 0.9); 	cr.line_to(1.-0.02, 0.9+0.01);
+    cr.stroke().expect("stroke failed");
 }
+
 
 fn draw_grid(cr: &Context, nx: i32, ny: i32)
 {
-	cr.set_dash(&[0.005,0.01], 0.);
+    cr.set_dash(&[0.005,0.01], 0.);
     cr.set_line_cap(LineCap::Round);
     cr.set_line_join(LineJoin::Bevel);
 	
-	let stepx = 0.9 / (nx as f64);
-	for x in 1..nx {
-		cr.move_to(0.1+(x as f64)*stepx, 0.01);
-		cr.line_to(0.1+(x as f64)*stepx, 0.89);
-	}
+    let stepx = 0.9 / (nx as f64);
+    for x in 1..nx {
+	cr.move_to(0.1+(x as f64)*stepx, 0.01);
+	cr.line_to(0.1+(x as f64)*stepx, 0.89);
+    }
 	
-	let stepy = 0.9 / (ny as f64);
-	for y in 1..ny {
-		cr.move_to(0.1+0.02, 0.9-(y as f64)*stepy);
-		cr.line_to(1.0-0.01, 0.9-(y as f64)*stepy);
-	}
+    let stepy = 0.9 / (ny as f64);
+    for y in 1..ny {
+	cr.move_to(0.1+0.02, 0.9-(y as f64)*stepy);
+	cr.line_to(1.0-0.01, 0.9-(y as f64)*stepy);
+    }
 
-	cr.stroke();
-	cr.set_dash(&[1.0], 0.);
+    cr.stroke().expect("stroke failed");
+    cr.set_dash(&[1.0], 0.);
 }
 
-fn draw_metrics(cr: &Context, nx: i32, ny: i32,sx: f64,sy: f64)
+fn draw_metrics(cr: &Context, nx: i32, ny: i32,sx: f64,sy: f64) -> Result<(), cairo::Error>
 {
-	cr.set_font_size(0.025);
+    cr.set_font_size(0.025);
 
-	let stepx = 0.9 / (nx as f64);
-	for x in 1..nx {
-		cr.move_to(0.1+(x as f64)*stepx, 0.9+0.03);
-		let val = sx * (x as f64);
-		cr.show_text(&format!("{}",val));
-	}
+    let stepx = 0.9 / (nx as f64);
+    for x in 1..nx {
+	cr.move_to(0.1+(x as f64)*stepx, 0.9+0.03);
+	let val = sx * (x as f64);
+	cr.show_text(&format!("{}",val))?;
+    }
 	
-	let stepy = 0.9 / (ny as f64);
-	for y in 1..ny {
-		cr.move_to(0.03, 0.9-(y as f64)*stepy);
-		let val = sy * (y as f64);
-		cr.show_text(&format!("{}",val));
-	}
+    let stepy = 0.9 / (ny as f64);
+    for y in 1..ny {
+	cr.move_to(0.03, 0.9-(y as f64)*stepy);
+	let val = sy * (y as f64);
+	cr.show_text(&format!("{}",val))?;
+    }
 	
-	cr.move_to(0.03, 0.03);
-    cr.show_text("mV");
-	cr.move_to(1.0-0.04, 0.9+0.03);
-	cr.show_text("mA");
+    cr.move_to(0.03, 0.03);
+    cr.show_text("mV")?;
+    cr.move_to(1.0-0.04, 0.9+0.03);
+    cr.show_text("mA")
 }
 
 
@@ -189,14 +189,14 @@ fn main() {
     let w = 800;
     let h = 800;
     let surface = ImageSurface::create(Format::ARgb32, w, h).expect("Can't create surface");
-    let cr = Context::new(&surface);
+    let cr = Context::new(&surface).expect("new context");
     
     cr.scale(w.into(), h.into());
 
     cr.set_line_width(0.001);
     cr.set_source_rgb(1.0, 1.0, 1.0);
     cr.rectangle(0.0, 0.0, 1.0, 1.0);
-    cr.fill();
+    cr.fill().expect("fill failed");
   	
     let mut sx = 10.;
     let mut maxx = series.iter().map(|s| OrderedFloat(s.maxc)).max().unwrap().into_inner();
@@ -226,7 +226,7 @@ fn main() {
 
     draw_axis(&cr,nx,ny);
     draw_grid(&cr,nx,ny);
-    draw_metrics(&cr,nx,ny,sx,sy);
+    draw_metrics(&cr,nx,ny,sx,sy).expect("draw metrics");
   	
     let kx = 0.9 / ((nx as f64) * sx);
     let ky = 0.9 / ((ny as f64) * sy); 
@@ -242,7 +242,7 @@ fn main() {
 	    cr.move_to(0.1-kx*se.i_data[i].val,   0.9+ky*se.u_data[i].val);
 	    cr.line_to(0.1-kx*se.i_data[i+1].val, 0.9+ky*se.u_data[i+1].val);
         }
-        cr.stroke();
+        cr.stroke().expect("stroke failed");
 
 	if series.len() == 1 {
 	    cr.set_source_rgb(0.0, 0.0, 1.0);
@@ -251,16 +251,15 @@ fn main() {
 		cr.move_to(0.1+kx*se.i_data[i].val,   0.9+ky*se.u_data[i].val);
 		cr.line_to(0.1+kx*se.i_data[i+1].val, 0.9+ky*se.u_data[i+1].val);
 	}
-        cr.stroke();
+        cr.stroke().expect("stroke failed");
 	count += 1;
     }
-	let ofn = "bh.png";
-        let mut file = File::create(&ofn).expect("Couldn't create output file");
-        match surface.write_to_png(&mut file) {
-            Ok(_) => println!("{} created",&ofn),
-            Err(_) => println!("Error creating {}",&ofn),
-	}
-	
+    let ofn = "bh.png";
+    let mut file = File::create(&ofn).expect("Couldn't create output file");
+    match surface.write_to_png(&mut file) {
+        Ok(_) => println!("{} created",&ofn),
+        Err(_) => println!("Error creating {}",&ofn),
+    }
 }
 
     

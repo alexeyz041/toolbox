@@ -4,6 +4,4 @@ version = "0.1.0"
 authors = ["lz"]
 
 [dependencies]
-#cairo-rs = { version = "^0", features = ["png"] }
-#ordered-float="1.0.2"
 
