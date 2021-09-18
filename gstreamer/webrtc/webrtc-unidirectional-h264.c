@@ -58,6 +58,7 @@ struct _ReceiverEntry
   GstElement *webrtcbin;
 };
 
+
 const gchar *html_source = " \n \
 <html> \n \
   <head> \n \
@@ -294,9 +295,9 @@ ReceiverEntry *create_receiver_entry (SoupWebsocketConnection * connection)
   gst_bus_add_watch (bus, bus_watch_cb, NULL);
   gst_object_unref (bus);
 
-  if (gst_element_set_state (receiver_entry->pipeline, GST_STATE_PLAYING) == GST_STATE_CHANGE_FAILURE)
+  if (gst_element_set_state (receiver_entry->pipeline, GST_STATE_PLAYING) == GST_STATE_CHANGE_FAILURE) {
     g_error ("Could not start pipeline");
-
+  }
   return receiver_entry;
 
 cleanup:
@@ -323,8 +324,10 @@ void destroy_receiver_entry (gpointer receiver_entry_ptr)
   g_slice_free1 (sizeof (ReceiverEntry), receiver_entry);
 }
 
-
-void on_offer_created_cb (GstPromise * promise, gpointer user_data)
+//
+// called after "create offer"
+//
+void on_offer_created_cb(GstPromise * promise, gpointer user_data)
 {
   gchar *sdp_string;
   gchar *json_string;
@@ -339,7 +342,7 @@ void on_offer_created_cb (GstPromise * promise, gpointer user_data)
   gst_structure_get (reply, "offer", GST_TYPE_WEBRTC_SESSION_DESCRIPTION,   &offer, NULL);
   gst_promise_unref (promise);
 
-  local_desc_promise = gst_promise_new ();
+  local_desc_promise = gst_promise_new();
   g_signal_emit_by_name (receiver_entry->webrtcbin, "set-local-description",   offer, local_desc_promise);
   gst_promise_interrupt (local_desc_promise);
   gst_promise_unref (local_desc_promise);
@@ -347,7 +350,7 @@ void on_offer_created_cb (GstPromise * promise, gpointer user_data)
   sdp_string = gst_sdp_message_as_text (offer->sdp);
   gst_print ("Negotiation offer created:\n%s\n", sdp_string);
 
-  sdp_json = json_object_new ();
+  sdp_json = json_object_new();
   json_object_set_string_member (sdp_json, "type", "sdp");
 
   sdp_data_json = json_object_new ();
@@ -358,6 +361,7 @@ void on_offer_created_cb (GstPromise * promise, gpointer user_data)
   json_string = get_string_from_json_object (sdp_json);
   json_object_unref (sdp_json);
 
+  gst_print("\n>JSON: %s\n\n", json_string);
   soup_websocket_connection_send_text (receiver_entry->connection, json_string);
   g_free (json_string);
   g_free (sdp_string);
@@ -365,20 +369,24 @@ void on_offer_created_cb (GstPromise * promise, gpointer user_data)
   gst_webrtc_session_description_free (offer);
 }
 
-
-void on_negotiation_needed_cb (GstElement * webrtcbin, gpointer user_data)
+//
+// webrtcbin callback
+//
+void on_negotiation_needed_cb(GstElement * webrtcbin, gpointer user_data)
 {
   GstPromise *promise;
   ReceiverEntry *receiver_entry = (ReceiverEntry *) user_data;
 
   gst_print ("Creating negotiation offer\n");
 
-  promise = gst_promise_new_with_change_func (on_offer_created_cb, (gpointer) receiver_entry, NULL);
+  promise = gst_promise_new_with_change_func(on_offer_created_cb, (gpointer) receiver_entry, NULL);
   g_signal_emit_by_name (G_OBJECT (webrtcbin), "create-offer", NULL, promise);
 }
 
-
-void on_ice_candidate_cb (G_GNUC_UNUSED GstElement * webrtcbin, guint mline_index, gchar * candidate, gpointer user_data)
+//
+// webrtcbin callback
+//
+void on_ice_candidate_cb(G_GNUC_UNUSED GstElement * webrtcbin, guint mline_index, gchar * candidate, gpointer user_data)
 {
   JsonObject *ice_json;
   JsonObject *ice_data_json;
@@ -397,12 +405,13 @@ void on_ice_candidate_cb (G_GNUC_UNUSED GstElement * webrtcbin, guint mline_inde
 
   json_object_unref (ice_json);
 
+  gst_print("\n>JSON: %s\n\n", json_string);
   soup_websocket_connection_send_text (receiver_entry->connection, json_string);
   g_free (json_string);
 }
 
 
-void soup_websocket_message_cb (G_GNUC_UNUSED SoupWebsocketConnection * connection, SoupWebsocketDataType data_type, GBytes * message, gpointer user_data)
+void soup_websocket_message_cb(G_GNUC_UNUSED SoupWebsocketConnection * connection, SoupWebsocketDataType data_type, GBytes * message, gpointer user_data)
 {
   gsize size;
   gchar *data;
@@ -431,6 +440,8 @@ void soup_websocket_message_cb (G_GNUC_UNUSED SoupWebsocketConnection * connecti
       g_assert_not_reached ();
   }
 
+  gst_print("\nJSON: %s\n\n", data_string);
+
   json_parser = json_parser_new ();
   if (!json_parser_load_from_data (json_parser, data_string, -1, NULL))
     goto unknown_message;
@@ -442,8 +453,8 @@ void soup_websocket_message_cb (G_GNUC_UNUSED SoupWebsocketConnection * connecti
   root_json_object = json_node_get_object (root_json);
 
   if (!json_object_has_member (root_json_object, "type")) {
-    g_error ("Received message without type field\n");
-    goto cleanup;
+    gst_printerr("Received message without type field\n");
+    goto unknown_message;
   }
   type_string = json_object_get_string_member (root_json_object, "type");
 
@@ -514,10 +525,12 @@ void soup_websocket_message_cb (G_GNUC_UNUSED SoupWebsocketConnection * connecti
     }
     candidate_string = json_object_get_string_member (data_json_object, "candidate");
     gst_print ("Received ICE candidate with mline index %u; candidate: %s\n",  mline_index, candidate_string);
-    g_signal_emit_by_name (receiver_entry->webrtcbin, "add-ice-candidate",  mline_index, candidate_string);
-  } else
+    if(candidate_string) {
+      g_signal_emit_by_name (receiver_entry->webrtcbin, "add-ice-candidate",  mline_index, candidate_string);
+    }
+  } else {
     goto unknown_message;
-
+  }
 cleanup:
   if (json_parser != NULL)
     g_object_unref (G_OBJECT (json_parser));
@@ -525,7 +538,7 @@ cleanup:
   return;
 
 unknown_message:
-  g_error ("Unknown message \"%s\", ignoring", data_string);
+  gst_print ("Unknown message \"%s\", ignoring", data_string);
   goto cleanup;
 }
 
@@ -538,7 +551,7 @@ void soup_websocket_closed_cb (SoupWebsocketConnection * connection,   gpointer 
 }
 
 
-void soup_http_handler (G_GNUC_UNUSED SoupServer * soup_server, SoupMessage * message, const char *path, G_GNUC_UNUSED GHashTable * query,
+void soup_http_handler(G_GNUC_UNUSED SoupServer * soup_server, SoupMessage * message, const char *path, G_GNUC_UNUSED GHashTable * query,
     G_GNUC_UNUSED SoupClientContext * client_context,  G_GNUC_UNUSED gpointer user_data)
 {
   SoupBuffer *soup_buffer;
