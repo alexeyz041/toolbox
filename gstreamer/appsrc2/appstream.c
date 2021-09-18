@@ -30,6 +30,11 @@ typedef struct {
 } CustomData;
 
 
+void fill_frame(uint8_t *data, int size, uint64_t nframe)
+{
+    memset(data, nframe & 0xff, size);
+}
+
 
 static gboolean read_data(CustomData *app)
 {
@@ -52,8 +57,8 @@ GstMapInfo map;
 	GST_BUFFER_DURATION (buffer) = gst_util_uint64_scale(1, GST_SECOND, 10 /*SAMPLE_RATE*/);
 
 	gst_buffer_map (buffer, &map, GST_MAP_WRITE);
-	memset(map.data,app->num_samples & 0xff,size);    
-	gst_buffer_unmap (buffer, &map);
+	fill_frame(map.data, size, app->num_samples);
+	gst_buffer_unmap(buffer, &map);
 
         g_signal_emit_by_name (app->appsrc, "push-buffer", buffer, &ret);
         gst_buffer_unref (buffer);
@@ -136,8 +141,8 @@ GError *err = NULL;
 GstBus *bus = NULL;
 GstCaps *caps = NULL;
 
-    memset(&data,0,sizeof(data));
-    gst_init (&argc, &argv);
+    memset(&data, 0, sizeof(data));
+    gst_init(&argc, &argv);
 
     GST_DEBUG_CATEGORY_INIT (appsrc_pipeline_debug, "appsrc-pipeline", 0, "appsrc pipeline example");
 
@@ -151,12 +156,12 @@ GstCaps *caps = NULL;
         g_clear_error (&err);
         return -1;
     }
-    g_assert (pData->pipeline);
+    g_assert(pData->pipeline);
 
     bus = gst_pipeline_get_bus(GST_PIPELINE(pData->pipeline));
     g_assert(bus);
 
-    gst_bus_add_watch (bus, (GstBusFunc) bus_message, pData);
+    gst_bus_add_watch(bus, (GstBusFunc) bus_message, pData);
 
     pData->appsrc = gst_bin_get_by_name (GST_BIN(pData->pipeline), "mysource");
     g_assert(pData->appsrc);
@@ -164,9 +169,9 @@ GstCaps *caps = NULL;
     g_signal_connect (pData->appsrc, "enough-data", G_CALLBACK (stop_feed), pData);
 
     caps = gst_caps_new_simple ("video/x-raw",
-	    "format",G_TYPE_STRING,"BGR",
-	    "bpp",G_TYPE_INT,24,
-	    "depth",G_TYPE_INT,24,
+	    "format", G_TYPE_STRING, "BGR",
+	    "bpp", G_TYPE_INT, 24,
+	    "depth", G_TYPE_INT, 24,
 	    "width", G_TYPE_INT, 800,
 	    "height", G_TYPE_INT, 600,
 	    NULL);
