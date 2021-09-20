@@ -31,12 +31,6 @@ typedef struct {
 } CustomData;
 
 
-void fill_frame(uint8_t *data, int size, uint64_t nframe)
-{
-
-    memset(data, nframe & 0xff, size);
-}
-
 
 static gboolean read_data(CustomData *app)
 {
@@ -156,7 +150,6 @@ GstCaps *caps = NULL;
          "video/x-h264,width=1920,height=1080,framerate=12500/1000 ! "
          "h264parse ! "
          "avdec_h264 ! "
-//         "videoconvert ! "
          "timeoverlay halignment=right valignment=bottom shaded-background=true font-desc=\"Sans, 41\" ! "
          "autovideosink", &err);
     if(err) {
