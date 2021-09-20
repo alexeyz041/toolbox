@@ -105,6 +105,12 @@ void load_samples(const char *folder)
         exit(1);
     }
 
+    int cnt = 0;
+    for( ; frames.size() > timestamps.size(); cnt++) {
+        frames.pop_back();
+    }
+    printf("dropped %d frames without timestamps\n", cnt);
+
     // set timestamps and durations
     for(size_t i=0; i < frames.size(); i++) {
         frames[i].rel_timestamp = (i < timestamps.size()) ? timestamps[i] : *timestamps.end();
