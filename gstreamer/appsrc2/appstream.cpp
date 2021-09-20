@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#include "h264src.h"
 
 GST_DEBUG_CATEGORY (appsrc_pipeline_debug);
 
@@ -32,6 +33,7 @@ typedef struct {
 
 void fill_frame(uint8_t *data, int size, uint64_t nframe)
 {
+
     memset(data, nframe & 0xff, size);
 }
 
@@ -42,23 +44,25 @@ guint len;
 GstFlowReturn ret;
 gdouble ms;
 GstMapInfo map;
-    
+
 //    ms = g_timer_elapsed(app->timer, NULL);
 //    if (ms > 0.1)
     {
-        GstBuffer *buffer;
+        GstBuffer *buffer = NULL;
         gboolean ok = TRUE;
 
-	GST_DEBUG("read_data timer");
+        GST_DEBUG("read_data timer");
 
-        int size = 800*600*3*sizeof(guchar);
-        buffer = gst_buffer_new_and_alloc(size);
-	GST_BUFFER_TIMESTAMP (buffer) = gst_util_uint64_scale(app->num_samples++, GST_SECOND, 10 /*SAMPLE_RATE*/);
-	GST_BUFFER_DURATION (buffer) = gst_util_uint64_scale(1, GST_SECOND, 10 /*SAMPLE_RATE*/);
+        Frame *frame = get_next_frame();
 
-	gst_buffer_map (buffer, &map, GST_MAP_WRITE);
-	fill_frame(map.data, size, app->num_samples);
-	gst_buffer_unmap(buffer, &map);
+        buffer = gst_buffer_new_and_alloc(frame->data.size());
+        GST_BUFFER_TIMESTAMP (buffer) = gst_util_uint64_scale(frame->timestamp, GST_SECOND, 1000000);
+        GST_BUFFER_DURATION (buffer) = gst_util_uint64_scale(frame->duration, GST_SECOND, 1000000);
+
+        gst_buffer_map (buffer, &map, GST_MAP_WRITE);
+
+        memcpy(map.data, frame->data.data(), frame->data.size());
+        gst_buffer_unmap(buffer, &map);
 
         g_signal_emit_by_name (app->appsrc, "push-buffer", buffer, &ret);
         gst_buffer_unref (buffer);
@@ -141,14 +145,18 @@ GError *err = NULL;
 GstBus *bus = NULL;
 GstCaps *caps = NULL;
 
+    load_samples( (argc > 1) ? argv[1] : "samples");
+
     memset(&data, 0, sizeof(data));
     gst_init(&argc, &argv);
 
     GST_DEBUG_CATEGORY_INIT (appsrc_pipeline_debug, "appsrc-pipeline", 0, "appsrc pipeline example");
 
     pData->pipeline = gst_parse_launch("appsrc name=mysource ! "
-         "video/x-raw,format=BGR,width=800,height=600,framerate=10/1 ! "
-         "videoconvert ! "
+         "video/x-h264,width=1920,height=1080,framerate=12500/1000 ! "
+         "h264parse ! "
+         "avdec_h264 ! "
+//         "videoconvert ! "
          "timeoverlay halignment=right valignment=bottom shaded-background=true font-desc=\"Sans, 41\" ! "
          "autovideosink", &err);
     if(err) {
@@ -168,13 +176,12 @@ GstCaps *caps = NULL;
     g_signal_connect (pData->appsrc, "need-data", G_CALLBACK (start_feed), pData);
     g_signal_connect (pData->appsrc, "enough-data", G_CALLBACK (stop_feed), pData);
 
-    caps = gst_caps_new_simple ("video/x-raw",
-	    "format", G_TYPE_STRING, "BGR",
-	    "bpp", G_TYPE_INT, 24,
-	    "depth", G_TYPE_INT, 24,
-	    "width", G_TYPE_INT, 800,
-	    "height", G_TYPE_INT, 600,
-	    NULL);
+    caps = gst_caps_new_simple ("video/x-h264",
+        "width", G_TYPE_INT, 1920,
+        "height", G_TYPE_INT, 1080,
+        "framerate", GST_TYPE_FRACTION, 12500, 1000,
+        NULL);
+
     g_object_set(pData->appsrc, "caps", caps, "format", GST_FORMAT_TIME, NULL);
 
     gst_element_set_state (pData->pipeline, GST_STATE_PLAYING);

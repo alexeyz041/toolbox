@@ -1,2 +1,2 @@
-gcc -I/usr/include/gdk-pixbuf-2.0 appstream.c -o appstream `pkg-config --cflags --libs gstreamer-1.0 gstreamer-audio-1.0`
+g++ -I/usr/include/gdk-pixbuf-2.0 appstream.cpp h264src.cpp -o appstream `pkg-config --cflags --libs gstreamer-1.0 gstreamer-audio-1.0`
 
