@@ -196,8 +196,10 @@ char pipe[1024] = {0};
                         g_print("\nPipeline state changed from %s to %s:\n",  gst_element_state_get_name (old_state), gst_element_state_get_name (new_state));
 
                         /* Print the current capabilities of the sink element */
-                        if(new_state == GST_STATE_PLAYING)
+                        if(new_state == GST_STATE_PLAYING) {
                             print_pad_capabilities(dec, "sink");
+                            terminate = TRUE;
+                        }
                     }
                     break;
 
