@@ -1,0 +1,1 @@
+g++ -O0 -ggdb -Wall -o main main.cpp settings.cpp -lyaml
