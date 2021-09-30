@@ -7,7 +7,7 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
-// updated to wark as very simple HTTPS server
+// updated to work as very simple HTTPS server
 //
 // https://www.boost.org/doc/libs/1_63_0/doc/html/boost_asio/examples.html
 // https://www.boost.org/doc/libs/1_39_0/doc/html/boost_asio/example/ssl/server.cpp
