@@ -1,0 +1,4 @@
+g++ -I/usr/include/gdk-pixbuf-2.0 appstream.cpp rosbag.cpp resolution.cpp \
+    -o appstream `pkg-config --cflags --libs gstreamer-1.0 gstreamer-audio-1.0` -lsqlite3
+
+
