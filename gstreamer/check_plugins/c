@@ -1,0 +1,2 @@
+gcc -ggdb main.c -o main `pkg-config --cflags --libs gstreamer-1.0 gstreamer-audio-1.0`
+
