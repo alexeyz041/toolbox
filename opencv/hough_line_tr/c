@@ -1,0 +1,3 @@
+set -x
+g++ hl.cpp -o hl `pkg-config --cflags --libs opencv4`
+

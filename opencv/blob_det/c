@@ -1,0 +1,3 @@
+set -x
+g++ bd.cpp -o bd `pkg-config --cflags --libs opencv4`
+

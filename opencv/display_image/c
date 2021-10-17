@@ -1,0 +1,3 @@
+set -x
+g++ display_image.cpp -o display_image `pkg-config --cflags --libs opencv4`
+

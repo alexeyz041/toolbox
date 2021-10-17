@@ -1,0 +1,3 @@
+set -x
+g++ canny.cpp -o canny `pkg-config --cflags --libs opencv4`
+
