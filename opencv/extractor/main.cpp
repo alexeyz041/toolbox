@@ -74,6 +74,7 @@ int main(int argc, char **argv)
     Mat img4 = imread(image_path, IMREAD_COLOR);
     Mat dst;
     double scale = target.height / 400.;
+    std::cout << "scale = " << scale << std::endl;
     double w = target.width / scale;
     resize(img4(target), dst, Size(w,400), 0, 0, INTER_AREA);
 
@@ -85,70 +86,19 @@ int main(int argc, char **argv)
 }
 
 
-/*
-
-
-//https://www.tutorialspoint.com/opencv/opencv_scaling.htm
-int scale {
-
-// Reading the Image from the file and storing it in to a Matrix object
-      String file ="E:/OpenCV/chap24/transform_input.jpg";
-      Mat src = Imgcodecs.imread(file);
-
-      // Creating an empty matrix to store the result
-      Mat dst = new Mat();
-
-      // Creating the Size object
-      Size size = new Size(src.rows()*2, src.rows()*2);
-
-      // Scaling the Image
-      Imgproc.resize(src, dst, size, 0, 0, Imgproc.INTER_AREA);
-
-      // Writing the image
-      Imgcodecs.imwrite("E:/OpenCV/chap24/scale_output.jpg", dst);
-
-}
-
-
-//https://stackoverflow.com/questions/40461143/c-opencv-rotating-image-by-an-arbitrary-number-degree
-
-int rotate()
+void rotate(Mat &src, Mat &dst)
 {
-Mat image1 = imread("Balloon.jpg", CV_LOAD_IMAGE_ANYCOLOR);
-   Mat rotC(image1.cols, image1.rows, image1.type());
- 
-  #define PI 3.14156
-void rotation(Mat image1)
-{
-    int hwidth = image1.rows / 2;
-    int hheight = image1.cols / 2;
-    double angle = 45.00 * PI / 180.0;
+    int hwidth = src.rows / 2;
+    int hheight = src.cols / 2;
+    double angle = 5.00 * M_PI / 180.0;
 
-    for (int x = 0;x < image1.rows;x++) {
-
-        for (int y = 0; y < image1.cols;y++) {
-
-
-        int xt = x - hwidth;
-        int yt = y - hheight;
-
-
-        int xs = (int)round((cos(angle) * xt - sin(angle) * yt) + hwidth);
-        int ys = (int)round((sin(angle) * xt + cos(angle) * yt) + hheight); 
-
-         rotC.at<Vec3b>(x,y) = image1.at<Vec3b>(xs, ys);
-
-      }
+    for (int x = 0; x < src.rows; x++) {
+        for (int y = 0; y < src.cols; y++) {
+          int xt = x - hwidth;
+          int yt = y - hheight;
+          int xs = (int)round((cos(angle) * xt - sin(angle) * yt) + hwidth);
+          int ys = (int)round((sin(angle) * xt + cos(angle) * yt) + hheight); 
+          dst.at<Vec3b>(x,y) = src.at<Vec3b>(xs, ys);
+        }
     }
- }
-
-
-
-  int main()
-{
- rotation(image1);
- imshow("color", rotC);
- waitKey(0);
 }
-}
-*/
