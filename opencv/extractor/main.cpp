@@ -57,6 +57,7 @@ int main(int argc, char **argv)
     Mat drawing = Mat::zeros( canny_output.size(), CV_8U );
     
     Rect target;
+    bool found = false;
     for(size_t i = 0; i < contours.size(); i++) {
         Scalar color = Scalar(255);
 //        drawContours(drawing, contours_poly, (int)i, color);
@@ -66,9 +67,15 @@ int main(int argc, char **argv)
                 rectangle(drawing, boundRect[i].tl(), boundRect[i].br(), color, 2);
                 if(boundRect[i].width > target.width && boundRect[i].height > target.height) {
                     target = boundRect[i];
+                    found = true;
                 }
             }
         }
+    }
+
+    if(!found) {
+        std::cout << "image not found" << std::endl;
+        return 1;
     }
 
     Mat img4 = imread(image_path, IMREAD_COLOR);
@@ -76,7 +83,7 @@ int main(int argc, char **argv)
     double scale = target.height / 400.;
     std::cout << "scale = " << scale << std::endl;
     double w = target.width / scale;
-    resize(img4(target), dst, Size(w,400), 0, 0, INTER_AREA);
+    resize(img4(target), dst, Size(w, 400), 0, 0, INTER_AREA);
 
     std::string out = make_name(argv[1], "_ext.jpg");
     imwrite(out, dst);
