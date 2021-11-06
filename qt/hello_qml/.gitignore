@@ -1,0 +1,4 @@
+.qmake.stash
+Makefile
+hello
+qrc_hello.cpp
