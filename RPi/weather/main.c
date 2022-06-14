@@ -108,11 +108,15 @@ float hum = 0;
 
     if(++cnt < 60) return;
     cnt = 0;
-
-    if(pi_2_dht_read(DHT11,4,&hum,&temp) != DHT_SUCCESS) {
-        printf("can\'t read DHT11\n");
+#if 0
+    if(pi_2_dht_read(DHT22, 4, &hum, &temp) != DHT_SUCCESS) {
+        printf("can\'t read DHT22\n");
 	return;
     }
+#else
+    hum = 20;
+    temp = 30;
+#endif
 
     time_t t = time (NULL);
     struct tm *timeinfo = localtime (&t);

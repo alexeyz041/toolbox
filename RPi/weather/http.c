@@ -240,7 +240,6 @@ void start_server(void)
 //HANDLE h;
 //DWORD id;
 //int iResult;
-
 	// Initialize Winsock
 //	iResult = WSAStartup(MAKEWORD(2,2), &wsaData);
 //	if (iResult != 0) {

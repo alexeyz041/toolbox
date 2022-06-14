@@ -218,17 +218,17 @@ int i;
 }
 
 
-
-int dump_vals2(dataset2_t *ds,char *s,int maxlen)
+int dump_vals2(dataset2_t *ds, char *s, int maxlen)
 {
 int i;
     *s = '\0';
     printf("dataset2 len = %d/%d\n",ds->n,ds->p);
     for(i=0; i < ds->p; i++) {
 	char row[64] = {0};
-	snprintf(row,sizeof(row),"%s %3.1f\n",ds->date[i],ds->value[i]);
+	snprintf(row, sizeof(row)-1, "%s %3.1f\n", ds->date[i], ds->value[i]);
+        row[sizeof(row)-1] = '\0';
 	if(strlen(s)+strlen(row)+4 < maxlen) {
-	    strcat(s,row);
+	    strcat(s, row);
 	}
     }
     return strlen(s);
