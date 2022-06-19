@@ -207,6 +207,23 @@ function draw(forDate) {
  ctx.moveTo(33,h/2+200); ctx.lineTo(w-10,h/2+200);
  ctx.moveTo(33,h/2+250); ctx.lineTo(w-10,h/2+250);
  ctx.stroke();
+
+// horisontal dased lines 2
+ ctx.beginPath();
+ ctx.setLineDash([1,20]);
+ ctx.moveTo(33,h/2-50+25);  ctx.lineTo(w-10,h/2-50+25);
+ ctx.moveTo(33,h/2-100+25); ctx.lineTo(w-10,h/2-100+25);
+ ctx.moveTo(33,h/2-150+25); ctx.lineTo(w-10,h/2-150+25);
+ ctx.moveTo(33,h/2-200+25); ctx.lineTo(w-10,h/2-200+25);
+ ctx.moveTo(33,h/2-250+25); ctx.lineTo(w-10,h/2-250+25);
+
+ ctx.moveTo(33,h/2+50-25);  ctx.lineTo(w-10,h/2+50-25);
+ ctx.moveTo(33,h/2+100-25); ctx.lineTo(w-10,h/2+100-25);
+ ctx.moveTo(33,h/2+150-25); ctx.lineTo(w-10,h/2+150-25);
+ ctx.moveTo(33,h/2+200-25); ctx.lineTo(w-10,h/2+200-25);
+ ctx.moveTo(33,h/2+250-25); ctx.lineTo(w-10,h/2+250-25);
+ ctx.stroke();
+
  ctx.setLineDash([0]);
 
  GetTemperatureInfo(forDate);

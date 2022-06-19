@@ -99,6 +99,36 @@ int d,m,h;
 
 //===================================================================================
 
+int get_meas3(float *temp, float *hum)
+{
+int i;
+int haveTemp = 0;
+int haveHum = 0;
+float t2 = 0;
+float h2 = 0;
+    for(i=0; i < 5; i++) {
+        float t = 0;
+        float h = 0;
+        if(pi_2_dht_read(DHT22, 4, &h, &t) != DHT_SUCCESS) {
+            printf("can\'t read DHT22\n");
+        }
+        if(t > -50 && t < 50) { haveTemp = 1; t2 = t; }
+        if(h > 0 && h < 100) { haveHum = 1; h2 = h; }
+        if(haveTemp && haveHum) break;
+
+        struct timespec delay;
+        delay.tv_sec = 0;
+        delay.tv_nsec = rand() % 1000000;
+        nanosleep(&delay, NULL);
+    }
+    if(!haveTemp || !haveHum) {
+        printf("haveTemp %d haveHum %d\n", haveTemp, haveHum);
+    }
+    *temp = t2;
+    *hum = h2;
+    return 1;
+}
+
 int cnt = 0;
 
 void get_meas()
@@ -108,10 +138,9 @@ float hum = 0;
 
     if(++cnt < 60) return;
     cnt = 0;
-#if 0
-    if(pi_2_dht_read(DHT22, 4, &hum, &temp) != DHT_SUCCESS) {
-        printf("can\'t read DHT22\n");
-	return;
+#if 1
+    if(!get_meas3(&temp, &hum)) {
+        return;
     }
 #else
     hum = 20;
