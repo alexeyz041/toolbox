@@ -286,7 +286,7 @@ fn handle_ethernet_frame(interface: &NetworkInterface, ethernet: &EthernetPacket
 
         dump(&format!("{}", ethernet.get_source()),
              &format!("{}", ethernet.get_destination()),
-             &format!("ET {:?}", ethernet.get_ethertype()),
+             &format!("ET {:#x?}", ethernet.get_ethertype().0),
              0,
              ethernet.payload().len() as u64),
     }
@@ -384,10 +384,12 @@ fn get_host_name(ip: &str) -> String {
     if let Some(host) = hosts.get(&ip.to_string()) {
         return host.to_string();
     }
-    let ip: IpAddr = ip.parse().unwrap();
-    let h = lookup_addr(&ip).unwrap_or("".to_string());
-    hosts.insert(ip.to_string(), h.clone());
-    h
+    if let Ok(ip) = ip.parse() {
+       let h = lookup_addr(&ip).unwrap_or("".to_string());
+       hosts.insert(ip.to_string(), h.clone());
+       return h;
+   }
+   return "".to_string();
 }
 
 
@@ -421,7 +423,7 @@ fn dump1(from: &str, to: &str, tp: &str, port: u16, n: u64) {
     let p = if port != 0 { format!("port {:<5}", port) } else { "".to_string() };
     if rev {
         c.insert(rkey, (row, count));
-        println!("{:<15} {:<15} {:<10} {:<10} {:<10} {}",
+        println!("{:<18} {:<18} {:<10} {:<10} {:<10} {}",
             if to == *me { "me" } else { to },
             if from == *me { "me" } else { from },
             tp,
@@ -430,7 +432,7 @@ fn dump1(from: &str, to: &str, tp: &str, port: u16, n: u64) {
             get_host_name(from));
     } else {
         c.insert(key, (row, count));
-        println!("{:<15} {:<15} {:<10} {:<10} {:<10} {}",
+        println!("{:<18} {:<18} {:<10} {:<10} {:<10} {}",
             if from == *me { "me" } else { from },
             if to == *me { "me" } else { to },
             tp,
