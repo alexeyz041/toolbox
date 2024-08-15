@@ -4,8 +4,8 @@ version = "0.1.0"
 authors = ["lz"]
 
 [dependencies]
-pnet = "0.29.0"
-rand = "0.6"
+pnet = "0.33.0"
+rand = "0.8.5"
 lazy_static = "1.2.0"
-termion = "1.5.5"
-dns-lookup = "1.0.3"
+termion = "2.0.1"
+dns-lookup = "2.0.2"

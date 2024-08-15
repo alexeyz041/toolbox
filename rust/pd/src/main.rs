@@ -441,4 +441,3 @@ fn dump1(from: &str, to: &str, tp: &str, port: u16, n: u64) {
             get_host_name(to));
     }
 }
-
