@@ -11,16 +11,16 @@ use std::path::Path;
 
 #[derive(Debug)]
 struct Data<T> {
-	val: T,
-	time: T
+    val: T,
+    time: T
 }
 
 
 fn load(fnm: &str, n: usize) -> Vec<Data<u16>>
 {
-	println!("Loading {}",fnm);
-	let mut data = Vec::new();
-	let f = File::open(fnm).unwrap();
+    println!("Loading {}",fnm);
+    let mut data = Vec::new();
+    let f = File::open(fnm).unwrap();
     let file = BufReader::new(&f);
     for line in file.lines() {
     	if n != 0 && data.len() >= n {
@@ -36,7 +36,7 @@ fn load(fnm: &str, n: usize) -> Vec<Data<u16>>
 		let v = val.parse::<u16>().unwrap();
       	data.push(Data{ val: v, time: t });
     }
-	data
+    data
 }
 
 
@@ -70,20 +70,20 @@ fn scale_k(pos: usize) -> f64 {
 
 fn main()
 {   
-	let mut series = Vec::new();
-	let mut n = 0;
-	let mut i = 1;
-	let mut fnm = String::new();
-	while env::args().len() > i {
-	    fnm = env::args().skip(i).next().expect("Missing input file");
-    	    if fnm == "-l" {
-		n = env::args().skip(i+1).next().expect("Missing length").parse::<usize>().unwrap();
-		i += 2;
-	    }
-	    break;
+    let mut series = Vec::new();
+    let mut n = 0;
+    let mut i = 1;
+    let mut fnm = String::new();
+    while env::args().len() > i {
+        fnm = env::args().skip(i).next().expect("Missing input file");
+        if fnm == "-l" {
+            n = env::args().skip(i+1).next().expect("Missing length").parse::<usize>().unwrap();
+	    i += 2;
 	}
+	break;
+    }
 
-	if fnm.len() == 0 {
+    if fnm.len() == 0 {
 	    let list = list_files(".");
 	    for fnm in &list {
          	    let data = load(&fnm, n);
@@ -100,7 +100,7 @@ fn main()
  		series.push(data2);
  		i += 1;
 	    }
-	}
+    }
 
     let mut res = Vec::new();
     for i in 0..series[0].len() {
@@ -112,12 +112,12 @@ fn main()
     }
     
     {
-		let ofn = "mean.txt";
-		let file = File::create(&ofn).expect("Couldn't create output file");
-		let mut writer = BufWriter::new(&file);
+	let ofn = "mean.txt";
+	let file = File::create(&ofn).expect("Couldn't create output file");
+	let mut writer = BufWriter::new(&file);
 		
-		for i in 0..res.len() {
-		    writeln!(&mut writer,"{},{}",res[i].time,res[i].val).unwrap();
-		}
+	for i in 0..res.len() {
+	    writeln!(&mut writer,"{},{}",res[i].time,res[i].val).unwrap();
+	}
     }
 }

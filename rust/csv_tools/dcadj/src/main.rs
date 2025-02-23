@@ -9,8 +9,8 @@ use std::io::BufWriter;
 
 #[derive(Debug)]
 struct Data<T> {
-	val: T,
-	time: T
+    val: T,
+    time: T
 }
 
 

@@ -16,12 +16,12 @@ use cairo::LineJoin;
 
 #[derive(Debug,Clone,Copy)]
 struct Data<T> {
-	val: T,
-	time: T
+    val: T,
+    time: T
 }
 
 fn convert_t(t: u16) -> f64 {
-	t as f64 * 1.17f64
+    t as f64 * 1.17f64
 }
 
 const RS : f64 = 0.5;
@@ -261,5 +261,3 @@ fn main() {
         Err(_) => println!("Error creating {}",&ofn),
     }
 }
-
-    
